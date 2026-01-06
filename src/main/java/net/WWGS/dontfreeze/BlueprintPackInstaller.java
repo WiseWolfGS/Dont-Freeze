@@ -11,14 +11,16 @@ import java.nio.file.*;
 public final class BlueprintPackInstaller {
     private BlueprintPackInstaller() {}
 
-    private static final String PACK_ROOT = "DontFreeze";
+    private static final String PACK_ROOT = "dontfreeze";
     private static final String RESOURCE_ROOT = "/blueprints/" + PACK_ROOT + "/";
 
     // JAR 안에 넣어둔 파일 목록(필요한 만큼 추가)
     private static final String[] FILES = {
             "pack.json",
-            "generator/generator1.blueprint",
-            "generator/generator2.blueprint",
+            "fundamentals/generator1.blueprint",
+            "fundamentals/generator2.blueprint",
+            "fundamentals/icon.png",
+            "fundamentals/icon_disabled.png",
             "icon.png"
     };
 
