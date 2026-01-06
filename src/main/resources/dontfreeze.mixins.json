@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.WWGS.dontfreeze.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "dontfreeze.refmap.json",
+  "mixins": [
+    "SnowLayerBlockMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
