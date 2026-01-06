@@ -18,6 +18,7 @@ public final class BlueprintPackInstaller {
     private static final String[] FILES = {
             "pack.json",
             "generator/generator1.blueprint",
+            "generator/generator2.blueprint",
             "icon.png"
     };
 

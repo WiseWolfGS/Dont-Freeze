@@ -94,6 +94,7 @@ public class DontFreeze {
                                 output.accept(EXAMPLE_ITEM.get());
                                 output.accept(EXAMPLE_BLOCK_ITEM.get());
                                 output.accept(GENERATOR_CORE_ITEM.get());
+                                output.accept(HUT_GENERATOR_ITEM.get());
                                 // 예제 아이템을 이 탭에 추가하는 코드.
                                 // 커스텀 탭을 만들 때는 이벤트보다 이 방식이 권장됨.
                             }).build());
