@@ -36,7 +36,7 @@ public class HeatTicker {
 
     private static void spawnSmoke(Level level, BlockPos pos) {
         double x = pos.getX() + 0.3 + level.random.nextDouble() * 0.4;
-        double y = pos.getY() + 0.8;
+        double y = pos.getY() + 0.3;
         double z = pos.getZ() + 0.3 + level.random.nextDouble() * 0.4;
 
         level.addParticle(
