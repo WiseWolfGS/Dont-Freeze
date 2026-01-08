@@ -74,16 +74,6 @@ public final class MineColoniesCompat {
         return townHall.getPosition();
     }
 
-    /**
-     * colonyId가 보유한 'generator' 건물들의 hut 위치를 반환.
-     * <p>
-     * MineColonies 버전 차이로 building type getter가 다를 수 있어, 3단계 폴백을 둔다:
-     * <ol>
-     *   <li>BuildingEntry 비교 (가능하면 가장 정확)</li>
-     *   <li>우리 BuildingGenerator 인스턴스 여부</li>
-     *   <li>schematicName == "generator"</li>
-     * </ol>
-     */
     public static Set<BlockPos> getGeneratorHutPositions(ServerLevel level, int colonyId) {
         IColony colony = IColonyManager.getInstance().getColonyByWorld(colonyId, level);
         if (colony == null) return Collections.emptySet();
@@ -151,33 +141,5 @@ public final class MineColoniesCompat {
 
         IChunkClaimData data = manager.getClaimData(level.dimension(), chunkPos);
         return data != null && data.getOwningColony() == colonyId;
-    }
-
-    /** 청크 내 눈/얼음 제거(간단 버전) */
-    public static void meltSnowAndIceInChunk(ServerLevel level, ChunkPos cp) {
-        if (!level.hasChunk(cp.x, cp.z)) return;
-
-        for (int dx = 0; dx < 16; dx++) {
-            for (int dz = 0; dz < 16; dz++) {
-                int x = cp.getMinBlockX() + dx;
-                int z = cp.getMinBlockZ() + dz;
-
-                int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
-                if (y < level.getMinBuildHeight()) continue;
-
-                BlockPos base = new BlockPos(x, y, z);
-
-                for (int up = 0; up <= 1; up++) {
-                    BlockPos p = base.above(up);
-                    BlockState s = level.getBlockState(p);
-
-                    if (s.is(Blocks.SNOW) || s.is(Blocks.SNOW_BLOCK)) {
-                        level.removeBlock(p, false);
-                    } else if (s.is(Blocks.ICE)) {
-                        level.setBlockAndUpdate(p, Blocks.WATER.defaultBlockState());
-                    }
-                }
-            }
-        }
     }
 }

@@ -1,5 +1,10 @@
-package net.WWGS.dontfreeze.domain.heat.tick;
+package net.WWGS.dontfreeze.domain.fuel.tick;
 
+import net.WWGS.dontfreeze.DontFreeze;
+import net.WWGS.dontfreeze.domain.heat.model.ChunkHeatRef;
+import net.WWGS.dontfreeze.domain.heat.model.HeatParams;
+import net.WWGS.dontfreeze.domain.heat.service.ChunkHeatCache;
+import net.WWGS.dontfreeze.domain.heat.storage.ColonyHeatStorage;
 import net.WWGS.dontfreeze.compat.minecolonies.MineColoniesCompat;
 import net.WWGS.dontfreeze.domain.fuel.storage.ColonyFuelStorage;
 import net.minecraft.core.BlockPos;
@@ -21,16 +26,10 @@ import java.util.Set;
 /**
  * 눈/얼음 녹이기 티커 (저부하 버전)
  *
- * 핵심:
- * - 한 틱에 너무 많은 setBlock을 하지 않도록 budget을 둔다.
- * - 청크를 큐로 돌리며 조금씩 처리한다.
- * - BlockEntity가 있는 블록은 절대 건드리지 않는다 (MineColonies/Structurize 크래시 방지).
- *
- * 처리 대상:
- * - SNOW, SNOW_BLOCK -> AIR
- * - ICE, FROSTED_ICE -> WATER
- *
- * 기본적으로 PACKED_ICE, BLUE_ICE는 건드리지 않는다(지형 파괴 방지).
+ * B안:
+ * - 큐 구성 자체를 "온도(ChunkWarmthModifier)와 동일한 청크 판정(predicate)"로 한다.
+ * - radiusChunks / 타운홀 중심 반경 계산은 제거한다.
+ * - (권장) 실제 처리 직전에도 재검증하여 연료/보너스 변화에 즉시 반응한다.
  */
 @EventBusSubscriber
 public final class SnowMeltTicker {
@@ -56,8 +55,6 @@ public final class SnowMeltTicker {
         ServerLevel level = server.overworld();
         if (level == null) return;
 
-        // 진행 중에는 큐를 리셋하지 않는다.
-        // 큐가 완전히 비었을 때만 “현재 활성 콜로니들” 기준으로 새 작업을 구성한다.
         if (currentChunk == null && CHUNK_QUEUE.isEmpty()) {
             rebuildWorkQueue(level);
         }
@@ -65,32 +62,66 @@ public final class SnowMeltTicker {
         processWork(level);
     }
 
+    /**
+     * B안: "온도 시스템과 동일하게 Heated로 판정되는 청크"만 큐에 담는다.
+     *
+     * 구현:
+     * - 연료가 있는 콜로니들의 claimed 청크를 훑되,
+     * - 각 청크 cp에 대해 isHeatedNow(level, ..., cp) == true 인 경우만 추가.
+     *
+     * 주의:
+     * - claimed 전수는 비쌀 수 있으니 MAX_CHUNKS_IN_QUEUE로 제한.
+     * - Set으로 unique 보장(여러 colony 루프에서 중복 방지).
+     */
     private static void rebuildWorkQueue(ServerLevel level) {
+        DontFreeze.LOGGER.info("[SnowMeltTicker] rebuildWorkQueue() [B]");
+
         CHUNK_QUEUE.clear();
         currentChunk = null;
         curIndexInChunk = 0;
 
-        ColonyFuelStorage storage = ColonyFuelStorage.get(level);
+        ColonyFuelStorage fuelStorage = ColonyFuelStorage.get(level);
+        ColonyHeatStorage heatStorage = ColonyHeatStorage.get(level);
+        ChunkHeatCache heatCache = ChunkHeatCache.get(level);
 
         Set<ChunkPos> unique = new HashSet<>();
 
-        for (int colonyId : storage.getColoniesWithFuel()) {
-            if (storage.getFuel(colonyId) <= 0) continue;
+        // 연료가 있는 콜로니만 대상으로 삼되,
+        // 실제로 청크를 넣을지는 isHeatedNow(온도 predicate)가 결정한다.
+        for (int colonyId : fuelStorage.getColoniesWithFuel()) {
+            if (fuelStorage.getFuel(colonyId) <= 0) continue;
 
+            // (옵션) bonus<=0이면 이 콜로니는 어떤 청크도 Heated가 될 수 없으니 빠르게 스킵
+            HeatParams p = heatStorage.getParams(colonyId);
+            if (Math.max(0.0, p.bonus()) <= 0.0) continue;
+
+            // claimed 전수 순회
             Set<ChunkPos> claimed = MineColoniesCompat.getClaimedChunksForColony(level, colonyId);
             if (claimed == null || claimed.isEmpty()) continue;
 
-            unique.addAll(claimed);
+            for (ChunkPos cp : claimed) {
+                // ✅ 온도와 동일 predicate
+                if (!isHeatedNow(level, heatCache, fuelStorage, heatStorage, cp)) continue;
+
+                unique.add(cp);
+                if (unique.size() >= MAX_CHUNKS_IN_QUEUE) break;
+            }
 
             if (unique.size() >= MAX_CHUNKS_IN_QUEUE) break;
         }
 
         CHUNK_QUEUE.addAll(unique);
+
+        DontFreeze.LOGGER.info("[SnowMeltTicker] queued chunks = {}", CHUNK_QUEUE.size());
     }
 
     private static void processWork(ServerLevel level) {
         int melted = 0;
         int scannedColumns = 0;
+
+        ColonyFuelStorage fuelStorage = ColonyFuelStorage.get(level);
+        ColonyHeatStorage heatStorage = ColonyHeatStorage.get(level);
+        ChunkHeatCache heatCache = ChunkHeatCache.get(level);
 
         while (melted < MAX_MELT_PER_TICK && scannedColumns < MAX_COLUMNS_PER_TICK) {
 
@@ -102,6 +133,12 @@ public final class SnowMeltTicker {
             }
 
             if (!level.hasChunk(currentChunk.x, currentChunk.z)) {
+                currentChunk = null;
+                continue;
+            }
+
+            // 권장: 처리 직전에도 재검증(연료/보너스가 변하면 즉시 반영)
+            if (!isHeatedNow(level, heatCache, fuelStorage, heatStorage, currentChunk)) {
                 currentChunk = null;
                 continue;
             }
@@ -143,11 +180,10 @@ public final class SnowMeltTicker {
         BlockState state = level.getBlockState(pos);
         if (state.isAir()) return 0;
 
-        // ✅ BlockEntity 있는 블록은 절대 건드리지 않는다 (MineColonies/Structurize 안전)
+        // BlockEntity 있는 블록은 절대 건드리지 않는다
         if (state.hasBlockEntity()) return 0;
 
         if (state.is(Blocks.SNOW) || state.is(Blocks.SNOW_BLOCK)) {
-            // flags=2 : 이웃 업데이트/렌더 갱신 최소화(스파이크 감소)
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
             return 1;
         }
@@ -158,5 +194,33 @@ public final class SnowMeltTicker {
         }
 
         return 0;
+    }
+
+    /**
+     * ✅ ChunkWarmthModifier와 동일한 청크 판정(predicate)
+     *
+     * - ref = ChunkHeatCache.getOrCompute(level, cp)
+     * - ref.valid
+     * - claimedBy(ref.colonyId)
+     * - fuel(ref.colonyId) > 0
+     * - bonus(ref.colonyId) > 0
+     *
+     * (참고) radiusChunks는 온도 쪽에서 안 쓰므로 여기에도 넣지 않는다.
+     */
+    private static boolean isHeatedNow(ServerLevel level,
+                                       ChunkHeatCache heatCache,
+                                       ColonyFuelStorage fuelStorage,
+                                       ColonyHeatStorage heatStorage,
+                                       ChunkPos cp) {
+        ChunkHeatRef ref = heatCache.getOrCompute(level, cp);
+        if (!ref.isValid()) return false;
+
+        int colonyId = ref.colonyId();
+
+        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
+        if (fuelStorage.getFuel(colonyId) <= 0) return false;
+
+        HeatParams params = heatStorage.getParams(colonyId);
+        return Math.max(0.0, params.bonus()) > 0.0;
     }
 }

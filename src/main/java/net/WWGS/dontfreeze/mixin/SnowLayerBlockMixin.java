@@ -1,6 +1,8 @@
 package net.WWGS.dontfreeze.mixin;
 
+import net.WWGS.dontfreeze.compat.minecolonies.MineColoniesCompat;
 import net.WWGS.dontfreeze.domain.heat.service.HeatedArea;
+import net.WWGS.dontfreeze.domain.heat.storage.ColonyHeatStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelReader;
