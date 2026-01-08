@@ -116,7 +116,6 @@ public class DontFreeze {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        event.enqueueWork(BlueprintPackInstaller::ensureInstalled);
     }
 
     // 예제 블록 아이템을 '건축 블록' 탭에 추가.
