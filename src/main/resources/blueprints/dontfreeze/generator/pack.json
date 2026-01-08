@@ -1,7 +1,7 @@
 {
   "version": 1,
   "pack-format": 1,
-  "name": "DontFreeze Steampunk",
+  "name": "Don't Freeze",
   "desc": "Generator core blueprint(s) for DontFreeze + MineColonies.",
   "authors": ["WWGS"],
   "mods": ["minecolonies", "structurize", "dontfreeze"],
