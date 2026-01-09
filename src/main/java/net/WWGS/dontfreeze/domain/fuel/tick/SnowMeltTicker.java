@@ -217,7 +217,7 @@ public final class SnowMeltTicker {
 
         int colonyId = ref.colonyId();
 
-        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
+        if (MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
         if (fuelStorage.getFuel(colonyId) <= 0) return false;
 
         HeatParams params = heatStorage.getParams(colonyId);

@@ -16,6 +16,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
@@ -51,7 +52,7 @@ public class ColonyFuelMenu extends AbstractContainerMenu {
         // 연료 슬롯(위 1칸)
         this.addSlot(new Slot(fuelInv, FUEL_SLOT_INDEX, 130, 112) {
             @Override
-            public boolean mayPlace(ItemStack stack) {
+            public boolean mayPlace(@NotNull ItemStack stack) {
                 // 연료로 쓸 수 있으면 true
                 return FuelService.canUseAsFuel(stack);
             }
@@ -84,12 +85,12 @@ public class ColonyFuelMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public boolean stillValid(Player player) {
+    public boolean stillValid(@NotNull Player player) {
         return true;
     }
 
     @Override
-    public void removed(Player player) {
+    public void removed(@NotNull Player player) {
         super.removed(player);
 
         if (player.level().isClientSide) return;
@@ -122,10 +123,10 @@ public class ColonyFuelMenu extends AbstractContainerMenu {
      * 쉬프트클릭 이동(연료 슬롯 <-> 플레이어 인벤)
      */
     @Override
-    public ItemStack quickMoveStack(Player player, int index) {
+    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
         ItemStack empty = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
-        if (slot == null || !slot.hasItem()) return empty;
+        if (!slot.hasItem()) return empty;
 
         ItemStack stack = slot.getItem();
         ItemStack copy = stack.copy();
@@ -170,7 +171,7 @@ public class ColonyFuelMenu extends AbstractContainerMenu {
         long fuel = ColonyFuelStorage.get(level).getFuel(colonyId);
 
         // GUI 표시용으로 clamp / cast
-        displayFuelTicks = (int) Math.min(fuel, Integer.MAX_VALUE);
+        displayFuelTicks = (int) fuel;
     }
 
     private void handleFuelSlotNow() {

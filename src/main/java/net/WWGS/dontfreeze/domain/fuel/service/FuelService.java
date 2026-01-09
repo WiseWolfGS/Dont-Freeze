@@ -8,9 +8,12 @@ import net.minecraft.world.item.ItemStack;
 public final class FuelService {
     private FuelService() {}
 
-    public static int inject(ServerLevel level, int colonyId, int burnTicks) {
-        if (burnTicks <= 0) return ColonyFuelStorage.get(level).getFuel(colonyId);
-        return ColonyFuelStorage.get(level).addFuel(colonyId, burnTicks);
+    public static void inject(ServerLevel level, int colonyId, int burnTicks) {
+        if (burnTicks <= 0) {
+            ColonyFuelStorage.get(level).getFuel(colonyId);
+            return;
+        }
+        ColonyFuelStorage.get(level).addFuel(colonyId, burnTicks);
     }
 
     public static boolean canUseAsFuel(ItemStack stack) {

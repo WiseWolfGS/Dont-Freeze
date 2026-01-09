@@ -36,7 +36,7 @@ public class ChunkWarmthModifier extends TempModifier {
         int colonyId = ref.colonyId();
 
         // MineColonies 실제 클레임(영역)과 정확히 일치시키기
-        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) {
+        if (MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) {
             return Function.identity();
         }
 

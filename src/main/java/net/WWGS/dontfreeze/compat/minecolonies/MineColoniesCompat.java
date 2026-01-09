@@ -14,10 +14,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -137,9 +134,9 @@ public final class MineColoniesCompat {
     /** 특정 청크가 colonyId에 의해 클레임되었는지 */
     public static boolean isChunkClaimedByColony(ServerLevel level, ChunkPos chunkPos, int colonyId) {
         IColonyManager manager = IColonyManager.getInstance();
-        if (manager == null) return false;
+        if (manager == null) return true;
 
         IChunkClaimData data = manager.getClaimData(level.dimension(), chunkPos);
-        return data != null && data.getOwningColony() == colonyId;
+        return data == null || data.getOwningColony() != colonyId;
     }
 }

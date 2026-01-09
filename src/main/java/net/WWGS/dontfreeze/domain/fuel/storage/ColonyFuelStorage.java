@@ -64,32 +64,35 @@ public final class ColonyFuelStorage extends SavedData {
 
     /**
      * 연료 추가. (0 이하 입력은 무시)
-     * @return 변경 후 fuelTicks
      */
-    public int addFuel(int colonyId, int addTicks) {
-        if (addTicks <= 0) return getFuel(colonyId);
+    public void addFuel(int colonyId, int addTicks) {
+        if (addTicks <= 0) {
+            getFuel(colonyId);
+            return;
+        }
 
         int cur = getFuel(colonyId);
 
         if (cur == MAX_FUEL_TICKS) {
-            return cur;
+            return;
         }
 
-        int next = clamp(cur + addTicks, 0, MAX_FUEL_TICKS);
+        int next = clamp(cur + addTicks);
 
         if (next != cur) {
             fuelTicksByColony.put(colonyId, next);
             setDirty();
         }
-        return next;
     }
 
     /**
      * 연료 소비. (0 이하 입력은 무시)
-     * @return 변경 후 fuelTicks
      */
-    public int consumeFuel(int colonyId, int consumeTicks) {
-        if (consumeTicks <= 0) return getFuel(colonyId);
+    public void consumeFuel(int colonyId, int consumeTicks) {
+        if (consumeTicks <= 0) {
+            getFuel(colonyId);
+            return;
+        }
 
         int cur = getFuel(colonyId);
         int next = max(0, cur - consumeTicks);
@@ -99,14 +102,13 @@ public final class ColonyFuelStorage extends SavedData {
             else fuelTicksByColony.put(colonyId, next);
             setDirty();
         }
-        return next;
     }
 
     /**
      * 강제 설정 (디버그/관리용)
      */
     public void setFuel(int colonyId, int ticks) {
-        int v = clamp(ticks, 0, MAX_FUEL_TICKS);
+        int v = clamp(ticks);
         if (v == 0) fuelTicksByColony.remove(colonyId);
         else fuelTicksByColony.put(colonyId, v);
         setDirty();
@@ -149,7 +151,7 @@ public final class ColonyFuelStorage extends SavedData {
      * Utils
      * ----------------------------- */
 
-    private static int clamp(int v, int lo, int hi) {
-        return min(hi, max(lo, v));
+    private static int clamp(int v) {
+        return min(ColonyFuelStorage.MAX_FUEL_TICKS, max(0, v));
     }
 }

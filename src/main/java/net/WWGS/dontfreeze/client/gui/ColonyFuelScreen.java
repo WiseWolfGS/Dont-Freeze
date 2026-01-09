@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import org.jetbrains.annotations.NotNull;
 
 public class ColonyFuelScreen extends AbstractContainerScreen<ColonyFuelMenu> {
     private static final ResourceLocation TEX =
@@ -38,7 +39,7 @@ public class ColonyFuelScreen extends AbstractContainerScreen<ColonyFuelMenu> {
     }
 
     @Override
-    protected void renderLabels(GuiGraphics gg, int mouseX, int mouseY) {
+    protected void renderLabels(@NotNull GuiGraphics gg, int mouseX, int mouseY) {
         super.renderLabels(gg, mouseX, mouseY);
 
         int ticks = this.menu.getDisplayFuelTicks();

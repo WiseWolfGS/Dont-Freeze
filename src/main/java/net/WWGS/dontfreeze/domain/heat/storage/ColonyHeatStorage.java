@@ -1,6 +1,5 @@
 package net.WWGS.dontfreeze.domain.heat.storage;
 
-import net.WWGS.dontfreeze.Config;
 import net.WWGS.dontfreeze.DontFreeze;
 import net.WWGS.dontfreeze.domain.heat.model.HeatParams;
 import net.minecraft.core.BlockPos;
@@ -40,8 +39,8 @@ public final class ColonyHeatStorage extends SavedData {
 
     public void setParams(int colonyId, int radiusChunks, double bonus) {
         // 상한/하한을 clamp
-        int r = clamp(radiusChunks, 0, 8);
-        double b = clamp(bonus, 0.0, 5.0);
+        int r = clamp(radiusChunks);
+        double b = clamp(bonus);
 
         paramsByColony.put(colonyId, new HeatParams(r, b));
         setDirty();
@@ -117,10 +116,10 @@ public final class ColonyHeatStorage extends SavedData {
     }
 
 
-    private static int clamp(int v, int lo, int hi) {
-        return Math.min(hi, Math.max(lo, v));
+    private static int clamp(int v) {
+        return Math.min(8, Math.max(0, v));
     }
-    private static double clamp(double v, double lo, double hi) {
-        return Math.min(hi, Math.max(lo, v));
+    private static double clamp(double v) {
+        return Math.min(5.0, Math.max(0.0, v));
     }
 }

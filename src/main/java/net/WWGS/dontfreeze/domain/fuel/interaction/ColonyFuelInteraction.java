@@ -18,6 +18,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.NotNull;
 
 @EventBusSubscriber
 public final class ColonyFuelInteraction {
@@ -45,12 +46,12 @@ public final class ColonyFuelInteraction {
         sp.openMenu(
                 new MenuProvider() {
                     @Override
-                    public Component getDisplayName() {
+                    public @NotNull Component getDisplayName() {
                         return Component.literal("Generator Core");
                     }
 
                     @Override
-                    public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
+                    public AbstractContainerMenu createMenu(int id, @NotNull Inventory inv, @NotNull Player player) {
                         return new ColonyFuelMenu(id, inv, townHallPos);
                     }
                 },

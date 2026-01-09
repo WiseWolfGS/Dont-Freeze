@@ -21,7 +21,7 @@ public final class HeatedArea {
         int colonyId = ref.colonyId();
 
 // 클레임 체크
-        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
+        if (MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
 
 // 연료 체크
         if (ColonyFuelStorage.get(level).getFuel(colonyId) <= 0) return false;
@@ -34,10 +34,8 @@ public final class HeatedArea {
         BlockPos townHall = ColonyHeatStorage.get(level).getTownHallPos(colonyId);
         if (townHall != null && params.radiusChunks() > 0) {
             ChunkPos center = new ChunkPos(townHall);
-            if (Math.abs(cp.x - center.x) > params.radiusChunks()
-                    || Math.abs(cp.z - center.z) > params.radiusChunks()) {
-                return false;
-            }
+            return Math.abs(cp.x - center.x) <= params.radiusChunks()
+                    && Math.abs(cp.z - center.z) <= params.radiusChunks();
         }
 
         return true;
