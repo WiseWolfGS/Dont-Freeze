@@ -116,6 +116,7 @@ public class DontFreeze {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        event.enqueueWork(net.WWGS.dontfreeze.compat.CompatBootstrap::init);
     }
 
     // 예제 블록 아이템을 '건축 블록' 탭에 추가.
@@ -149,7 +150,7 @@ public class DontFreeze {
         }
     }
 
-    @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
+    @EventBusSubscriber(modid = MODID, value = Dist.DEDICATED_SERVER)
     public static class ServerModEvents {
         @SubscribeEvent
         public static void onServerSetup(FMLDedicatedServerSetupEvent event) {

@@ -66,10 +66,7 @@ public final class ColonyFuelStorage extends SavedData {
      * 연료 추가. (0 이하 입력은 무시)
      */
     public void addFuel(int colonyId, int addTicks) {
-        if (addTicks <= 0) {
-            getFuel(colonyId);
-            return;
-        }
+        if (addTicks <= 0) return;
 
         int cur = getFuel(colonyId);
 
@@ -89,10 +86,7 @@ public final class ColonyFuelStorage extends SavedData {
      * 연료 소비. (0 이하 입력은 무시)
      */
     public void consumeFuel(int colonyId, int consumeTicks) {
-        if (consumeTicks <= 0) {
-            getFuel(colonyId);
-            return;
-        }
+        if (consumeTicks <= 0) return;
 
         int cur = getFuel(colonyId);
         int next = max(0, cur - consumeTicks);

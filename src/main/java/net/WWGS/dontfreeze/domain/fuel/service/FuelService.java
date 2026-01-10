@@ -9,10 +9,7 @@ public final class FuelService {
     private FuelService() {}
 
     public static void inject(ServerLevel level, int colonyId, int burnTicks) {
-        if (burnTicks <= 0) {
-            ColonyFuelStorage.get(level).getFuel(colonyId);
-            return;
-        }
+        if (burnTicks <= 0) return;
         ColonyFuelStorage.get(level).addFuel(colonyId, burnTicks);
     }
 
@@ -23,7 +20,6 @@ public final class FuelService {
 
     public static int getBurnTicksForOneItem(ItemStack stack) {
         FuelDefinition fuel = FuelDefinition.from(stack);
-        assert fuel != null;
-        return fuel.burnTicks();
+        return fuel != null ? fuel.burnTicks() : 0;
     }
 }

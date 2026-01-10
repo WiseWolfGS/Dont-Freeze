@@ -20,8 +20,8 @@ public final class HeatedArea {
 
         int colonyId = ref.colonyId();
 
-// 클레임 체크
-        if (MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
+        // 클레임 체크: 해당 콜로니 클레임 안이면 난방 적용 X
+        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
 
 // 연료 체크
         if (ColonyFuelStorage.get(level).getFuel(colonyId) <= 0) return false;

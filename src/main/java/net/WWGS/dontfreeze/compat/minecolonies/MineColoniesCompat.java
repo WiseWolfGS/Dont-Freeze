@@ -134,9 +134,9 @@ public final class MineColoniesCompat {
     /** 특정 청크가 colonyId에 의해 클레임되었는지 */
     public static boolean isChunkClaimedByColony(ServerLevel level, ChunkPos chunkPos, int colonyId) {
         IColonyManager manager = IColonyManager.getInstance();
-        if (manager == null) return true;
+        if (manager == null) return false;
 
         IChunkClaimData data = manager.getClaimData(level.dimension(), chunkPos);
-        return data == null || data.getOwningColony() != colonyId;
+        return data != null && data.getOwningColony() == colonyId;
     }
 }

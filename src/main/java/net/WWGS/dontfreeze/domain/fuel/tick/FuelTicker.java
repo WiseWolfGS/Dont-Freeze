@@ -43,7 +43,7 @@ public final class FuelTicker {
             if (storage.getFuel(colonyId) <= 0) continue;
 
             for (BlockPos hutPos : MineColoniesCompat.getGeneratorHutPositions(overworld, colonyId)) {
-                activeCores.add(hutPos.above(2)); // hut 위 2칸 = generator_core
+                activeCores.add(hutPos.above(1));
             }
         }
 
