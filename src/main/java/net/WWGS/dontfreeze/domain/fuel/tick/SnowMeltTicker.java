@@ -101,7 +101,7 @@ public final class SnowMeltTicker {
 
             for (ChunkPos cp : claimed) {
                 // ✅ 온도와 동일 predicate
-                if (!isHeatedNow(level, heatCache, fuelStorage, heatStorage, cp)) continue;
+                if (isHeatedNow(level, heatCache, fuelStorage, heatStorage, cp)) continue;
 
                 unique.add(cp);
                 if (unique.size() >= MAX_CHUNKS_IN_QUEUE) break;
@@ -138,7 +138,7 @@ public final class SnowMeltTicker {
             }
 
             // 권장: 처리 직전에도 재검증(연료/보너스가 변하면 즉시 반영)
-            if (!isHeatedNow(level, heatCache, fuelStorage, heatStorage, currentChunk)) {
+            if (isHeatedNow(level, heatCache, fuelStorage, heatStorage, currentChunk)) {
                 currentChunk = null;
                 continue;
             }
@@ -213,14 +213,14 @@ public final class SnowMeltTicker {
                                        ColonyHeatStorage heatStorage,
                                        ChunkPos cp) {
         ChunkHeatRef ref = heatCache.getOrCompute(level, cp);
-        if (!ref.isValid()) return false;
+        if (!ref.isValid()) return true;
 
         int colonyId = ref.colonyId();
 
-        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return false;
-        if (fuelStorage.getFuel(colonyId) <= 0) return false;
+        if (!MineColoniesCompat.isChunkClaimedByColony(level, cp, colonyId)) return true;
+        if (fuelStorage.getFuel(colonyId) <= 0) return true;
 
         HeatParams params = heatStorage.getParams(colonyId);
-        return Math.max(0.0, params.bonus()) > 0.0;
+        return !(Math.max(0.0, params.bonus()) > 0.0);
     }
 }
