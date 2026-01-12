@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "up": "dontfreeze:block/blockhutgenerator_top",
+    "down": "dontfreeze:block/blockhutgenerator_bottom",
+    "north": "dontfreeze:block/blockhutgenerator_side",
+    "east": "dontfreeze:block/blockhutgenerator_side",
+    "west": "dontfreeze:block/blockhutgenerator_side",
+    "south": "dontfreeze:block/blockhutgenerator_side",
+    "particle": "dontfreeze:block/blockhutgenerator_top"
+  }
+}
