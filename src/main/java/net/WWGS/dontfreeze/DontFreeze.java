@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils;
 import com.momosoftworks.coldsweat.api.util.Temperature;
 import com.momosoftworks.coldsweat.api.util.placement.Placement;
 import net.WWGS.dontfreeze.compat.coldsweat.modifier.ChunkWarmthModifier;
+import net.WWGS.dontfreeze.compat.coldsweat.modifier.TemperatureSmoothingModifier;
 import net.WWGS.dontfreeze.compat.minecolonies.block.BlockHutGenerator;
 import net.WWGS.dontfreeze.compat.minecolonies.registry.DFMineColoniesBuildings;
 import net.WWGS.dontfreeze.registry.ModMenus;
@@ -139,6 +140,11 @@ public class DontFreeze {
 
         if (!Temperature.hasModifier(player, Temperature.Trait.WORLD, ChunkWarmthModifier.class)) {
             Temperature.addModifier(player, new ChunkWarmthModifier(), Temperature.Trait.WORLD, Placement.LAST);
+        }
+
+        if (!Temperature.hasModifier(player, Temperature.Trait.CORE, TemperatureSmoothingModifier.class)) {
+            player.getPersistentData().remove("dontfreeze:temp_smoothing_last_core");
+            Temperature.addModifier(player, new TemperatureSmoothingModifier(), Temperature.Trait.CORE, Placement.LAST);
         }
     }
 

@@ -22,7 +22,32 @@ public class Config {
     public static final ModConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION = BUILDER.comment("What you want the introduction message to be for the magic number").define("magicNumberIntroduction", "The magic number is... ");
 
     private static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_STRINGS = BUILDER.comment("A list of items to log on common setup.").defineListAllowEmpty("items", List.of("minecraft:iron_ingot"), () -> "minecraft:iron_ingot", Config::validateItemName);
-    static final ModConfigSpec SPEC = BUILDER.build();
+    static ModConfigSpec SPEC = BUILDER.build();
+
+    static ModConfigSpec.DoubleValue TEMP_CHANGE_MULTIPLIER;
+
+    public static double tempChangeMultiplier;
+
+    static
+    {
+        BUILDER.push("Cold Sweat");
+
+        TEMP_CHANGE_MULTIPLIER = BUILDER
+                .comment(
+                        "Multiplier for core temperature change rate",
+                        "1.0 = vanilla Cold Sweat behavior",
+                        "0.2 = temperature changes 5x slower"
+                )
+                .defineInRange(
+                        "tempChangeMultiplier",
+                        0.5,
+                        0.0,
+                        1.0
+                );
+
+        BUILDER.pop();
+        SPEC = BUILDER.build();
+    }
 
     public static boolean logDirtBlock;
     public static int magicNumber;
@@ -44,5 +69,6 @@ public class Config {
 
         // 문자열 리스트를 항목 세트(set)로 변환
         items = ITEM_STRINGS.get().stream().map(itemName -> BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemName))).collect(Collectors.toSet());
+        tempChangeMultiplier = TEMP_CHANGE_MULTIPLIER.get();
     }
 }
