@@ -1,5 +1,6 @@
 {
   "variants": {
-    "": { "model": "dontfreeze:block/generator_core" }
+    "lit=false": { "model": "dontfreeze:block/generator_core" },
+    "lit=true":  { "model": "dontfreeze:block/generator_core_lit" }
   }
 }
