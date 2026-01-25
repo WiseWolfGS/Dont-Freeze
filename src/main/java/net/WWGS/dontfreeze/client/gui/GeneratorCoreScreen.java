@@ -3,6 +3,8 @@ package net.WWGS.dontfreeze.client.gui;
 import net.WWGS.dontfreeze.DFConstants;
 import net.WWGS.dontfreeze.common.config.DFConfigValues;
 import net.WWGS.dontfreeze.common.menu.GeneratorCoreMenu;
+import net.WWGS.dontfreeze.common.network.payload.c2s.SetHeatBonusPayload;
+import net.WWGS.dontfreeze.common.network.payload.c2s.StartGeneratorPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -10,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.NotNull;
 
 public final class GeneratorCoreScreen extends AbstractContainerScreen<GeneratorCoreMenu> {
@@ -58,6 +61,10 @@ public final class GeneratorCoreScreen extends AbstractContainerScreen<Generator
         double cur = this.menu.getHeatBonus();
         double next = Mth.clamp(cur + delta, DFConfigValues.coreMinHeat, DFConfigValues.coreMaxHeat);
         int scaled = (int) Math.round(next * 100.0);
+
+        PacketDistributor.sendToServer(
+                new SetHeatBonusPayload(this.menu.getBlockPos(), scaled)
+        );
     }
 
     @Override
@@ -75,6 +82,18 @@ public final class GeneratorCoreScreen extends AbstractContainerScreen<Generator
         this.addRenderableWidget(
                 Button.builder(Component.literal("+"), b -> changeBonus(+0.25))
                         .bounds(bx + 24, by, 20, 20).build()
+        );
+
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("Start Test"),
+                                btn -> {
+                                    PacketDistributor.sendToServer(
+                                            new StartGeneratorPayload(menu.getBlockPos())
+                                    );
+                                }
+                        ).bounds(leftPos + 10, topPos + 10, 80, 20)
+                        .build()
         );
     }
 }

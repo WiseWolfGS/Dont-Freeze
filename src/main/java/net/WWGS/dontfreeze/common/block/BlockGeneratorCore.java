@@ -2,8 +2,10 @@ package net.WWGS.dontfreeze.common.block;
 
 import net.WWGS.dontfreeze.common.block.entity.BlockGeneratorCoreEntity;
 import net.WWGS.dontfreeze.common.registry.DFBlockEntities;
+import net.WWGS.dontfreeze.feature.fuel.platform.GeneratorCoreRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -94,5 +96,21 @@ public final class BlockGeneratorCore extends Block implements EntityBlock {
                     0.0, 0.02, 0.0
             );
         }
+    }
+
+    @Override
+    public void onPlace(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState oldState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, oldState, movedByPiston);
+        if (!level.isClientSide && level instanceof ServerLevel sl) {
+            GeneratorCoreRegistry.get(sl).add(pos);
+        }
+    }
+
+    @Override
+    public void onRemove(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull BlockState newState, boolean movedByPiston) {
+        if (!level.isClientSide && level instanceof ServerLevel sl) {
+            GeneratorCoreRegistry.get(sl).remove(pos);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

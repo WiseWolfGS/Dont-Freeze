@@ -4,6 +4,7 @@ import net.WWGS.dontfreeze.common.config.DFConfig;
 import net.WWGS.dontfreeze.common.config.DFConfigValues;
 import net.WWGS.dontfreeze.common.network.DFNetwork;
 import net.WWGS.dontfreeze.common.registry.*;
+import net.WWGS.dontfreeze.integration.Integrations;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -28,6 +29,6 @@ public class DontFreeze {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-
+        event.enqueueWork(Integrations::init);
     }
 }

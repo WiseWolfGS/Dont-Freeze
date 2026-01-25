@@ -45,6 +45,7 @@ public class GeneratorCoreMenu extends AbstractContainerMenu {
         addHotbar(inv, 58, 199);
 
         computeColonyIdIfServer();
+        syncHeatBonusIfServer();
     }
 
     private void addPlayerInventory(Inventory inv, int left, int top) {
@@ -137,11 +138,11 @@ public class GeneratorCoreMenu extends AbstractContainerMenu {
     }
 
     public int getBurnTickMinutes() {
-        return be.getBurnTicks() / 20 / SECONDS_PER_MINUTE;
+        return be.getBurnTicks() / 20;
     }
 
     public int getBurnTickSeconds() {
-        return be.getBurnTicks() / 20 % SECONDS_PER_MINUTE;
+        return be.getBurnTicks() % 20;
     }
 
     public BlockPos getBlockPos() {
