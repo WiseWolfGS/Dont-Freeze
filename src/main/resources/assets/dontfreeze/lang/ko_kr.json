@@ -1,0 +1,11 @@
+{
+  "itemGroup.dontfreeze": "얼지마 탭",
+  "block.dontfreeze.example_block": "예제 블록",
+  "item.dontfreeze.example_item": "예제 아이템",
+  "block.dontfreeze.generator_core": "발전기 코어",
+  "block.dontfreeze.blockhutgenerator": "발전기 관리",
+  "block.minecolonies.generator": "발전기 관리 블록",
+  "com.dontfreeze.building.generator": "발전기",
+  "com.dontfreeze.building.generator.desc": "거센 추위에서 콜로니를 지켜줄 든든한 발전기 입니다. 연료를 넣으면 주변 온도가 일정 수준으로 유지됩니다.",
+  "screen.dontfreeze.generator_core": "발전기"
+}

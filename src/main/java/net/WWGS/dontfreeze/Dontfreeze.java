@@ -1,9 +1,12 @@
 package net.WWGS.dontfreeze;
 
 import com.mojang.logging.LogUtils;
-import net.WWGS.dontfreeze.core.common.block.DFBlocks;
-import net.WWGS.dontfreeze.core.common.item.DFCreativeModeTabs;
-import net.WWGS.dontfreeze.core.common.item.DFItems;
+import net.WWGS.dontfreeze.api.client.gui.DFMenus;
+import net.WWGS.dontfreeze.apiimp.initializer.DFJobsInitializer;
+import net.WWGS.dontfreeze.core.block.DFBlocks;
+import net.WWGS.dontfreeze.core.item.DFCreativeModeTabs;
+import net.WWGS.dontfreeze.core.item.DFItems;
+import net.WWGS.dontfreeze.core.network.DFNetworks;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -28,11 +31,15 @@ public class Dontfreeze {
 
         DFBlocks.init(modEventBus);
         DFItems.init(modEventBus);
+        DFMenus.init(modEventBus);
         DFCreativeModeTabs.init(modEventBus);
 
         NeoForge.EVENT_BUS.register(this);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, DFConfig.SPEC);
+        modEventBus.addListener(DFNetworks::registerPayloads);
+
+        DFJobsInitializer.DEFERRED_REGISTER.register(modEventBus);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

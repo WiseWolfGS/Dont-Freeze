@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "up": "dontfreeze:block/generator_core_top",
+    "down": "dontfreeze:block/generator_core_bottom",
+    "north": "dontfreeze:block/generator_core_lit_side",
+    "east": "dontfreeze:block/generator_core_lit_side",
+    "west": "dontfreeze:block/generator_core_lit_side",
+    "south": "dontfreeze:block/generator_core_lit_side",
+    "particle": "dontfreeze:block/generator_core_top"
+  }
+}
