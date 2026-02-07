@@ -1,11 +1,12 @@
 {
   "itemGroup.dontfreeze": "Don't freeze Tab",
-  "block.dontfreeze.example_block": "Example Block",
-  "item.dontfreeze.example_item": "Example Item",
+  "creativetab.dontfreeze.dontfreeze_items": "Don't freeze Tab",
   "block.dontfreeze.generator_core": "generator core",
+  "item.dontfreeze.generator_core": "generator core",
   "block.dontfreeze.blockhutgenerator": "generator hut",
+  "item.dontfreeze.blockhutgenerator": "generator hut",
   "block.minecolonies.generator": "generator hut colonies",
   "com.dontfreeze.building.generator": "generator",
   "com.dontfreeze.building.generator.desc": "Center of colonies.",
-  "screen.dontfreeze.generator_core": "generator"
+  "menu.dontfreeze.generator_core": "generator"
 }

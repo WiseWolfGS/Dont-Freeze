@@ -116,7 +116,11 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
         if (!(player.level() instanceof ServerLevel level)) return;
 
         int fuel = (colonyId < 0) ? 0 : FuelSavedData.get(level).getFuel(colonyId);
-        if (fuel <= 0) return;
+        if (fuel <= 0) {
+            fuelMinutes.set(0);
+            fuelSeconds.set(0);
+            return;
+        }
 
         double bonus = getHeatBonus();
 
@@ -212,8 +216,8 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
 
             tryConsumeFuelOnePerTick(level);
 
-            syncFuelToDataSlotsIfServer();
             syncHeatBonusIfServer();
+            syncFuelToDataSlotsIfServer();
         }
     }
 

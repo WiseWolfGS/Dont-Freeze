@@ -4,8 +4,10 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.MapCodec;
 import net.WWGS.dontfreeze.api.colony.heat.HeatTier;
 import net.WWGS.dontfreeze.core.colony.fuel.menu.MenuGeneratorCore;
+import net.WWGS.dontfreeze.core.colony.fuel.platform.GeneratorCoreRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
@@ -56,6 +58,25 @@ public class BlockGeneratorCore extends Block {
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LIT, HEAT_TIER);
     }
+
+    @Override
+    public void onPlace(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState oldState, boolean isMoving) {
+        super.onPlace(state, level, pos, oldState, isMoving);
+        if (!level.isClientSide && level instanceof ServerLevel sl) {
+            GeneratorCoreRegistry.get(sl).add(pos);
+        }
+    }
+
+    @Override
+    public void onRemove(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull BlockState newState, boolean isMoving) {
+        if (!level.isClientSide && level instanceof ServerLevel sl) {
+            if (state.getBlock() != newState.getBlock()) {
+                GeneratorCoreRegistry.get(sl).remove(pos);
+            }
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
+    }
+
 
     private static void openMenu(Player player, BlockPos pos) {
         if (player instanceof ServerPlayer sp) {
