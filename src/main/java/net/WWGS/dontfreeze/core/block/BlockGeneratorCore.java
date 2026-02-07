@@ -3,11 +3,11 @@ package net.WWGS.dontfreeze.core.block;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.MapCodec;
 import net.WWGS.dontfreeze.api.colony.heat.HeatTier;
+import net.WWGS.dontfreeze.core.colony.fuel.menu.MenuGeneratorCore;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -58,6 +58,14 @@ public class BlockGeneratorCore extends Block {
     }
 
     private static void openMenu(Player player, BlockPos pos) {
-        LOGGER.info("[DFE] Generator core menu open | title = {}, player = {}, pos = {}", TITLE, player, pos);
+        if (player instanceof ServerPlayer sp) {
+            MenuProvider provider = new SimpleMenuProvider(
+                    (id, inv, p) -> new MenuGeneratorCore(id, inv, pos),
+                    TITLE
+            );
+
+            // ✅ 핵심: 메뉴 열 때 pos를 buf로 같이 보냄 (클라 메뉴 생성자에서 읽는다)
+            sp.openMenu(provider, buf -> buf.writeBlockPos(pos));
+        }
     }
 }

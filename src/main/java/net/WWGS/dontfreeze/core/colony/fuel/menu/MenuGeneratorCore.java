@@ -66,6 +66,12 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
         };
 
         this.addSlot(new Slot(this.fuelSlot, 0, FUEL_SLOT_X, FUEL_SLOT_Y));
+
+        addPlayerInventorySlots(inv, 58, 141);
+        addHotbarSlots(inv, 58, 199);
+
+        computeColonyIdIfServer();
+        syncFuelToDataSlotsIfServer();
     }
 
     private void onFuelSlotChanged() {
@@ -147,7 +153,7 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
 
         if (handlingFuelSlot) return;
         ItemStack stack = this.fuelSlot.getItem(0);
-        if (stack.isEmpty() || !stack.is((Item) DFConfig.fuelItems)) return;
+        if (stack.isEmpty() || !DFConfig.fuelItems.contains(stack.getItem())) return;
 
         int burnTicks = FuelBurnTime.getBurnTicks(stack);
         if (burnTicks <= 0) return;

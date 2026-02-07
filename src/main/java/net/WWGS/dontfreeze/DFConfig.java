@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class DFConfig {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
-    private static final Supplier<List<? extends String>> defaultSupplier = () -> List.of("minecraft:coals");
+    private static final Supplier<List<? extends String>> defaultSupplier = () -> List.of("minecraft:coal");
 
     static final ModConfigSpec.DoubleValue TEMP_CHANGE_MULTIPLIER;
     static final ModConfigSpec.DoubleValue CORE_MAX_HEAT;

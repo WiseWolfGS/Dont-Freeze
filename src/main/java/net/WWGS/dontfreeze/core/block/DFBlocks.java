@@ -14,7 +14,7 @@ public class DFBlocks {
 
     public static final DeferredHolder<Block, BlockHutGenerator> BLOCK_HUT_GENERATOR =
             BLOCKS.register(
-                    "hut_generator",
+                    "blockhutgenerator",
                     () -> new BlockHutGenerator(BlockBehaviour.Properties.of()
                             .strength(2.0F)
                             .noOcclusion()
