@@ -73,6 +73,28 @@ public final class WindowGeneratorCore extends AbstractContainerScreen<MenuGener
                 String.format("Heat Bonus: %.2f", this.menu.getHeatBonus()),
                 100, 68, 0x404040, false
         );
+
+        gg.drawString(
+                this.font,
+                String.format("Buildings: %d (Lv Sum: %d)", this.menu.getBuildingCount(), this.menu.getBuildingLevelSum()),
+                100, 78, 0x404040, false
+        );
+
+        int cps = this.menu.getCostPerSecond();
+        if (cps > 0) {
+            gg.drawString(
+                    this.font,
+                    "Cost/s: " + cps,
+                    100, 88, 0x404040, false
+            );
+
+            String coalText = this.menu.getCoalEfficiencyMinutes() + "m " + this.menu.getCoalEfficiencySeconds() + "s";
+            gg.drawString(
+                    this.font,
+                    "1 Coal -> " + coalText,
+                    100, 98, 0x404040, false
+            );
+        }
     }
 
     private void changeBonus(double delta) {

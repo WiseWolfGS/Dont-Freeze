@@ -69,7 +69,7 @@ public final class MineColoniesColonyQuery implements ColonyQuery {
         IColony colony = manager.getColonyByWorld(colonyId, level);
         if (colony == null) return null;
 
-        ITownHall townHall = colony.getBuildingManager().getTownHall();
+        ITownHall townHall = colony.getServerBuildingManager().getTownHall();
         if (townHall == null) return null;
 
         return townHall.getPosition();
@@ -78,7 +78,7 @@ public final class MineColoniesColonyQuery implements ColonyQuery {
     private static @Nullable BlockPos toTownHallPos(@Nullable IColony colony) {
         if (colony == null) return null;
 
-        ITownHall townHall = colony.getBuildingManager().getTownHall();
+        ITownHall townHall = colony.getServerBuildingManager().getTownHall();
         if (townHall == null) return null;
 
         return townHall.getPosition();

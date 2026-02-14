@@ -5,6 +5,7 @@ import net.WWGS.dontfreeze.api.client.gui.DFMenus;
 import net.WWGS.dontfreeze.api.util.QueryUtils;
 import net.WWGS.dontfreeze.core.colony.fuel.platform.FuelSavedData;
 import net.WWGS.dontfreeze.core.colony.fuel.service.FuelBurnTime;
+import net.WWGS.dontfreeze.core.colony.fuel.service.FuelCostCalculator;
 import net.WWGS.dontfreeze.core.colony.fuel.service.FuelService;
 import net.WWGS.dontfreeze.core.colony.heat.storage.ColonyHeatParamsStorage;
 import net.minecraft.core.BlockPos;
@@ -28,6 +29,7 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
 
     private static final int SECONDS_PER_MINUTE = 60;
     private static final int BONUS_SCALE = 100;
+    private static final int COST_SCALE = 1;
 
     private final Inventory playerInv;
     private final Container fuelSlot;
@@ -42,6 +44,11 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
     private final DataSlot fuelMinutes = DataSlot.standalone();
     private final DataSlot fuelSeconds = DataSlot.standalone();
     private final DataSlot heatBonusScaled = DataSlot.standalone();
+    private final DataSlot buildingCount = DataSlot.standalone();
+    private final DataSlot buildingLevelSum = DataSlot.standalone();
+    private final DataSlot costPerSecond = DataSlot.standalone();
+    private final DataSlot coalMinutes = DataSlot.standalone();
+    private final DataSlot coalSeconds = DataSlot.standalone();
 
     public MenuGeneratorCore(int containerId, Inventory inv, FriendlyByteBuf buf) {
         this(containerId, inv, buf.readBlockPos());
@@ -56,6 +63,11 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
         this.addDataSlot(fuelMinutes);
         this.addDataSlot(fuelSeconds);
         this.addDataSlot(heatBonusScaled);
+        this.addDataSlot(buildingCount);
+        this.addDataSlot(buildingLevelSum);
+        this.addDataSlot(costPerSecond);
+        this.addDataSlot(coalMinutes);
+        this.addDataSlot(coalSeconds);
 
         this.fuelSlot = new SimpleContainer(1) {
             @Override
@@ -119,21 +131,52 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
         if (fuel <= 0) {
             fuelMinutes.set(0);
             fuelSeconds.set(0);
+            buildingCount.set(0);
+            buildingLevelSum.set(0);
+            costPerSecond.set(0);
+            coalMinutes.set(0);
+            coalSeconds.set(0);
             return;
         }
 
         double bonus = getHeatBonus();
 
-        int costPerSecond = DFConfig.baseCostOfCore + (int)Math.ceil(bonus * DFConfig.bonusCostOfCore);
-        if (costPerSecond <= 0) return;
+        FuelCostCalculator.CostBreakdown breakdown = FuelCostCalculator.compute(level, colonyId, bonus);
+        int cps = breakdown.totalCostPerSecond();
 
-        int seconds = fuel / costPerSecond;
+        buildingCount.set(breakdown.buildingCount());
+        buildingLevelSum.set(breakdown.buildingLevelSum());
+        costPerSecond.set(cps * COST_SCALE);
+
+        int seconds = fuel / cps;
 
         int minutesPart = seconds / SECONDS_PER_MINUTE;
         int secondsPart = seconds % SECONDS_PER_MINUTE;
 
         fuelMinutes.set(minutesPart);
         fuelSeconds.set(secondsPart);
+
+        syncCoalEfficiencyIfServer(level, cps);
+    }
+
+    private void syncCoalEfficiencyIfServer(ServerLevel level, int costPerSecond) {
+        if (costPerSecond <= 0) {
+            coalMinutes.set(0);
+            coalSeconds.set(0);
+            return;
+        }
+
+        // "minecraft:coal" is the default fuel; if you remove coal from config, we still show the vanilla coal efficiency.
+        int burnTicks = FuelBurnTime.getBurnTicks(new ItemStack(net.minecraft.world.item.Items.COAL));
+        if (burnTicks <= 0) {
+            coalMinutes.set(0);
+            coalSeconds.set(0);
+            return;
+        }
+
+        int totalSeconds = burnTicks / costPerSecond;
+        coalMinutes.set(totalSeconds / SECONDS_PER_MINUTE);
+        coalSeconds.set(totalSeconds % SECONDS_PER_MINUTE);
     }
 
     private void syncHeatBonusIfServer() {
@@ -235,6 +278,29 @@ public class MenuGeneratorCore extends AbstractContainerMenu {
 
     public double getHeatBonus() {
         return heatBonusScaled.get() / (double) BONUS_SCALE;
+    }
+
+    public int getBuildingCount() {
+        return buildingCount.get();
+    }
+
+    public int getBuildingLevelSum() {
+        return buildingLevelSum.get();
+    }
+
+    /**
+     * Fuel consumption per second (in burn ticks per second). 0 means unknown/not in colony.
+     */
+    public int getCostPerSecond() {
+        return costPerSecond.get() / COST_SCALE;
+    }
+
+    public int getCoalEfficiencyMinutes() {
+        return coalMinutes.get();
+    }
+
+    public int getCoalEfficiencySeconds() {
+        return coalSeconds.get();
     }
 
     public BlockPos getCorePos() {

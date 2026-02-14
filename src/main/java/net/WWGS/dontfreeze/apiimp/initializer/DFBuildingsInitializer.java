@@ -8,7 +8,6 @@ import net.WWGS.dontfreeze.Dontfreeze;
 import net.WWGS.dontfreeze.api.colony.building.DFBuildings;
 import net.WWGS.dontfreeze.api.colony.building.view.GeneratorView;
 import net.WWGS.dontfreeze.core.block.DFBlocks;
-import net.WWGS.dontfreeze.core.colony.building.module.DFBuildingModules;
 import net.WWGS.dontfreeze.core.colony.building.workerbuilding.BuildingGenerator;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -37,7 +36,6 @@ public class DFBuildingsInitializer {
             generatorBuilder.setBuildingProducer(BuildingGenerator::new);
             generatorBuilder.setBuildingViewProducer(() -> GeneratorView::new);
             generatorBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(Dontfreeze.MODID, DFBuildings.GENERATOR_ID));
-            generatorBuilder.addBuildingModuleProducer(DFBuildingModules.FIREKEEPER_WORK);
             generatorBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             generatorBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
             DFBuildings.generator = generatorBuilder.createBuildingEntry();

@@ -2,6 +2,7 @@ package net.WWGS.dontfreeze.core.client.gui;
 
 import com.momosoftworks.coldsweat.api.util.Temperature;
 import net.WWGS.dontfreeze.Dontfreeze;
+import net.WWGS.dontfreeze.core.client.state.ClientColonyFuelTimeState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -29,6 +30,7 @@ public final class WindowPlayerTemperature {
             double csTemp = clamp(temp / 150.0, -1.0, 1.0);
             csTemp = Math.tanh(2.0 * csTemp) / Math.tanh(2.0);
             csTemp = 37.0 + csTemp * 5.0;
+
             String text = String.format("체온: %.2f", csTemp);
             int x = 8;
             int y = 200;
@@ -37,6 +39,23 @@ public final class WindowPlayerTemperature {
                     mc.font,
                     String.format(text),
                     x, y,
+                    0xFFFFFF
+            );
+
+            // 발전기(코어) 남은 시간 HUD (서버에서 1초마다 동기화)
+            int colonyId = ClientColonyFuelTimeState.getColonyId();
+            int m = ClientColonyFuelTimeState.getMinutes();
+            int s = ClientColonyFuelTimeState.getSeconds();
+            double t = 20 / ClientColonyFuelTimeState.getTickPerFuel() * 100;
+
+            String fuelText = (colonyId > 0)
+                    ? String.format("발전기: %dm %ds (효율 %.2f%%)", m, s, t)
+                    : "발전기: (소속 콜로니 없음)";
+
+            guiGraphics.drawString(
+                    mc.font,
+                    fuelText,
+                    x, y + 10,
                     0xFFFFFF
             );
         });

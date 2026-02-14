@@ -23,7 +23,7 @@ public final class MineColoniesGeneratorQuery implements GeneratorQuery {
         IColony colony = manager.getColonyByWorld(colonyId, level);
         if (colony == null) return Collections.emptySet();
 
-        Map<BlockPos, IBuilding> buildings = colony.getBuildingManager().getBuildings();
+        Map<BlockPos, IBuilding> buildings = colony.getServerBuildingManager().getBuildings();
         if (buildings.isEmpty()) return Collections.emptySet();
 
         Set<BlockPos> out = new HashSet<>();

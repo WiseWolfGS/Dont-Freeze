@@ -20,7 +20,6 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {
-    // Specify the version of NeoForge to use.
     version = project.neo_version
 
     parchment {
@@ -67,20 +66,20 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 
 dependencies {
-    compileOnly "curse.maven:blockui-522992:7387809"
-    implementation "curse.maven:blockui-522992:7387809"
+    compileOnly "curse.maven:blockui-522992:7541336"
+    implementation "curse.maven:blockui-522992:7541336"
 
-    compileOnly "curse.maven:domum-ornamentum-527361:7422835"
-    implementation "curse.maven:domum-ornamentum-527361:7422835"
+    compileOnly "curse.maven:domum-ornamentum-527361:7585527"
+    implementation "curse.maven:domum-ornamentum-527361:7585527"
 
-    compileOnly "curse.maven:minecolonies-245506:7450523"
-    implementation "curse.maven:minecolonies-245506:7450523"
+    compileOnly "curse.maven:minecolonies-245506:7594914"
+    runtimeOnly "curse.maven:minecolonies-245506:7594914"
 
     compileOnly "curse.maven:multi-piston-303278:7097877"
     implementation "curse.maven:multi-piston-303278:7097877"
 
-    compileOnly "curse.maven:structurize-298744:7421173"
-    implementation "curse.maven:structurize-298744:7421173"
+    compileOnly "curse.maven:structurize-298744:7584080"
+    implementation "curse.maven:structurize-298744:7584080"
 
     compileOnly "curse.maven:towntalk-900364:5653504"
     implementation "curse.maven:towntalk-900364:5653504"
@@ -88,8 +87,14 @@ dependencies {
     compileOnly "curse.maven:cold-sweat-506194:7370181"
     implementation "curse.maven:cold-sweat-506194:7370181"
 
+    compileOnly "curse.maven:snow-real-magic-308663:7579809"
+    implementation "curse.maven:snow-real-magic-308663:7579809"
+
     compileOnly "org.spongepowered:mixin:0.8.5"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+
+//    compileOnly "curse.maven:jadecolonies-882310:5721338"
+//    implementation "curse.maven:jadecolonies-882310:5721338"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

@@ -14,7 +14,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -101,7 +100,7 @@ public class BuildingGenerator extends AbstractBuilding
         if (te == null) return false;
 
         var pos = te.getTilePos();
-        if (!level.hasChunkAt(pos)) return false;
+        if (!level.isLoaded(pos)) return false;
 
         for (Direction dir : Direction.values())
         {
@@ -185,21 +184,96 @@ public class BuildingGenerator extends AbstractBuilding
     private boolean tryInjectFromBuildingInventory(ServerLevel level, int colonyId)
     {
         Object inv = tryGetBuildingInventoryObject();
-        if (inv == null) return false;
+        return switch (inv) {
 
-        // Case A: It's already an IItemHandler
+            // Case A: It's already an IItemHandler
+            case IItemHandler handler -> tryInjectFromOneHandler(level, colonyId, handler);
+
+
+            // Case B: It's a vanilla Container (or something implementing it)
+            case Container container -> tryInjectFromContainer(level, colonyId, container);
+            case null, default -> false;
+        };
+
+    }
+
+    // -----------------------------------------
+    // ✅ HUD helper: total fuel ticks available in this building inventory
+    // -----------------------------------------
+
+    /**
+     * Returns the total burn ticks available from *all fuel items* currently stored in the
+     * generator building's own inventory ("보관함").
+     *
+     * This intentionally does NOT look at colony-wide warehouses or other buildings.
+     */
+    public int getTotalFuelTicksInBuildingInventory()
+    {
+        Object inv = tryGetBuildingInventoryObject();
+        if (inv == null) return 0;
+
+        long total = 0;
+
+        // Case A: IItemHandler
         if (inv instanceof IItemHandler handler)
         {
-            return tryInjectFromOneHandler(level, colonyId, handler);
+            for (int i = 0; i < handler.getSlots(); i++)
+            {
+                ItemStack s = handler.getStackInSlot(i);
+                if (s.isEmpty()) continue;
+                int burn = FuelBurnTime.getBurnTicks(s);
+                if (burn <= 0) continue;
+                total += (long) burn * (long) s.getCount();
+            }
+            return (int) Math.min(Integer.MAX_VALUE, total);
         }
 
-        // Case B: It's a vanilla Container (or something implementing it)
+        // Case B: Container
         if (inv instanceof Container container)
         {
-            return tryInjectFromContainer(level, colonyId, container);
+            for (int i = 0; i < container.getContainerSize(); i++)
+            {
+                ItemStack s = container.getItem(i);
+                if (s.isEmpty()) continue;
+                int burn = FuelBurnTime.getBurnTicks(s);
+                if (burn <= 0) continue;
+                total += (long) burn * (long) s.getCount();
+            }
+            return (int) Math.min(Integer.MAX_VALUE, total);
         }
 
-        return false;
+        return 0;
+    }
+
+    public int getTotalFuelTicksIncludingHandlers()
+    {
+        long total = 0;
+
+        // 1) 건물 자체 보관함
+        total += getTotalFuelTicksInBuildingInventory();
+
+        // 2) 주변 선반 / 랙 (handlers)
+        try
+        {
+            for (IItemHandler handler : this.getHandlers())
+            {
+                if (handler == null) continue;
+
+                for (int slot = 0; slot < handler.getSlots(); slot++)
+                {
+                    ItemStack stack = handler.getStackInSlot(slot);
+                    if (stack.isEmpty()) continue;
+
+                    int burn = FuelBurnTime.getBurnTicks(stack);
+                    if (burn <= 0) continue;
+
+                    total += (long) burn * (long) stack.getCount();
+                }
+            }
+        }
+        catch (Throwable ignored) {}
+
+        return (int) Math.min(Integer.MAX_VALUE, total);
     }
 
     private boolean tryInjectFromContainer(ServerLevel level, int colonyId, Container container)
@@ -270,8 +344,7 @@ public class BuildingGenerator extends AbstractBuilding
             Object t = invokeNoArg(te, "getInventory");
             if (t != null) return t;
 
-            Object t2 = invokeNoArg(te, "getContainer");
-            if (t2 != null) return t2;
+            return invokeNoArg(te, "getContainer");
         }
 
         return null;

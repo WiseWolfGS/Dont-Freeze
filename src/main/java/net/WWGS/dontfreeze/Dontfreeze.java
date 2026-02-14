@@ -1,23 +1,24 @@
 package net.WWGS.dontfreeze;
 
-import com.minecolonies.apiimp.initializer.ModBlocksInitializer;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.mojang.logging.LogUtils;
 import com.momosoftworks.coldsweat.api.util.Temperature;
 import com.momosoftworks.coldsweat.api.util.placement.Placement;
 import net.WWGS.dontfreeze.api.client.gui.DFMenus;
 import net.WWGS.dontfreeze.api.util.QueryUtils;
-import net.WWGS.dontfreeze.apiimp.initializer.DFJobsInitializer;
 import net.WWGS.dontfreeze.apiimp.initializer.DFTileEntitiesInitializer;
 import net.WWGS.dontfreeze.core.block.DFBlocks;
 import net.WWGS.dontfreeze.core.colony.MineColoniesColonyQuery;
 import net.WWGS.dontfreeze.core.colony.MineColoniesGeneratorQuery;
 import net.WWGS.dontfreeze.core.colony.heat.platform.ColonyHeatModifier;
 import net.WWGS.dontfreeze.core.colony.heat.platform.WorldHeatSmoothingModifier;
+import net.WWGS.dontfreeze.core.command.DFCommands;
 import net.WWGS.dontfreeze.core.item.DFCreativeModeTabs;
 import net.WWGS.dontfreeze.core.item.DFItems;
 import net.WWGS.dontfreeze.core.network.DFNetworks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -28,6 +29,8 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
@@ -48,11 +51,10 @@ public class Dontfreeze {
         DFTileEntitiesInitializer.BLOCK_ENTITIES.register(modEventBus);
 
         NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, DFConfig.SPEC);
         modEventBus.addListener(DFNetworks::registerPayloads);
-
-        DFJobsInitializer.DEFERRED_REGISTER.register(modEventBus);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -62,17 +64,24 @@ public class Dontfreeze {
         QueryUtils.registerGeneratorQuery(new MineColoniesGeneratorQuery());
     }
 
+    private static void ensureHeatModifiers(LivingEntity entity) {
+        if (!Temperature.hasModifier(entity, Temperature.Trait.WORLD, ColonyHeatModifier.class)) {
+            Temperature.addModifier(entity, new ColonyHeatModifier(), Temperature.Trait.WORLD, Placement.LAST);
+        }
+    }
+
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        ensureHeatModifiers(player);
+    }
 
-        if (!Temperature.hasModifier(player, Temperature.Trait.WORLD, ColonyHeatModifier.class)) {
-            Temperature.addModifier(player, new ColonyHeatModifier(), Temperature.Trait.WORLD, Placement.LAST);
-        }
-
-        if (!Temperature.hasModifier(player, Temperature.Trait.CORE, WorldHeatSmoothingModifier.class)) {
-            player.getPersistentData().remove("dontfreeze:temp_smoothing_last_core");
-            Temperature.addModifier(player, new WorldHeatSmoothingModifier(), Temperature.Trait.CORE, Placement.LAST);
+    @SubscribeEvent
+    public void onEntityJoin(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        if (living instanceof AbstractEntityCitizen) {
+            ensureHeatModifiers(living);
         }
     }
 
@@ -88,5 +97,9 @@ public class Dontfreeze {
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
+    }
+
+    private void onRegisterCommands(RegisterCommandsEvent event) {
+        DFCommands.register(event.getDispatcher());
     }
 }

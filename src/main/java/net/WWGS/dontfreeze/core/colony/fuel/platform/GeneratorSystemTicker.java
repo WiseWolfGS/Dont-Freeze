@@ -6,6 +6,7 @@ import net.WWGS.dontfreeze.api.colony.ColonyQuery;
 import net.WWGS.dontfreeze.api.util.QueryUtils;
 import net.WWGS.dontfreeze.core.block.BlockGeneratorCore;
 import net.WWGS.dontfreeze.core.colony.fuel.service.FuelService;
+import net.WWGS.dontfreeze.core.colony.fuel.service.FuelCostCalculator;
 import net.WWGS.dontfreeze.core.colony.fuel.service.NearestToTownHallCoreResolver;
 import net.WWGS.dontfreeze.core.colony.fuel.storage.ColonyCoreResolver;
 import net.WWGS.dontfreeze.core.colony.heat.storage.ColonyHeatParamsStorage;
@@ -46,7 +47,7 @@ public final class GeneratorSystemTicker {
             double bonus =
                     ColonyHeatParamsStorage.get(level).getParams(colonyId).bonus();
 
-            int cost = DFConfig.baseCostOfCore + (int)Math.ceil(bonus * DFConfig.bonusCostOfCore);
+            int cost = FuelCostCalculator.compute(level, colonyId, bonus).totalCostPerSecond();
 
             FuelService.consumeFuel(level, colonyId, cost);
         }
