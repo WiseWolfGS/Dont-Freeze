@@ -29,16 +29,16 @@ public class BuildingPos {
     public static final String TAG_COLONY_ID = "colonyId";
     public static final String TAG_BUILDING_ID = "buildingId";
 
-    public static final Codec<BuildingPos> CODEC = RecordCodecBuilder.create(builder -> builder.group(//
-            Level.RESOURCE_KEY_CODEC.fieldOf("dimensionId").forGetter(BuildingPos::getDimensionId), //
-            Codec.INT.fieldOf("colonyId").forGetter(BuildingPos::getColonyId), //
-            BlockPos.CODEC.fieldOf("buildingId").forGetter(BuildingPos::getBuildingId) //
+    public static final Codec<BuildingPos> CODEC = RecordCodecBuilder.create(builder -> builder.group(
+            Level.RESOURCE_KEY_CODEC.fieldOf("dimensionId").forGetter(BuildingPos::getDimensionId),
+            Codec.INT.fieldOf("colonyId").forGetter(BuildingPos::getColonyId),
+            BlockPos.CODEC.fieldOf("buildingId").forGetter(BuildingPos::getBuildingId)
     ).apply(builder, BuildingPos::new));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, BuildingPos> STREAM_CODEC = StreamCodec.composite(//
-            ResourceKey.streamCodec(Registries.DIMENSION), BuildingPos::getDimensionId, //
-            ByteBufCodecs.VAR_INT, BuildingPos::getColonyId, //
-            BlockPos.STREAM_CODEC, BuildingPos::getBuildingId, //
+    public static final StreamCodec<RegistryFriendlyByteBuf, BuildingPos> STREAM_CODEC = StreamCodec.composite(
+            ResourceKey.streamCodec(Registries.DIMENSION), BuildingPos::getDimensionId,
+            ByteBufCodecs.VAR_INT, BuildingPos::getColonyId,
+            BlockPos.STREAM_CODEC, BuildingPos::getBuildingId,
             BuildingPos::new);
 
     @NotNull
@@ -105,8 +105,8 @@ public class BuildingPos {
         }
         else if (obj instanceof BuildingPos other)
         {
-            return this.dimensionId == other.dimensionId //
-                    && this.colonyId == other.colonyId//
+            return this.dimensionId == other.dimensionId
+                    && this.colonyId == other.colonyId
                     && this.buildingId.equals(other.buildingId);
         }
         else
