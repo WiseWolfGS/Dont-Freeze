@@ -1,0 +1,77 @@
+<window size="210 244"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+        lightbox="false">
+
+    <layout source="minecolonies:gui/citizen/nav.xml"/>
+
+    <text id="title" pos="33 12" size="164 11" color="black" textalign="MIDDLE"
+          label="§l$(dontfreeze.gui.citizen.migrate.title)"/>
+
+    <scrollgroup id="colonyList" pos="33 30" size="164 130">
+
+        <!-- row0 -->
+        <view id="row0" pos="0 0" size="164 20" visible="false">
+            <text id="colonyName0" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select0" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row1 -->
+        <view id="row1" pos="0 20" size="164 20" visible="false">
+            <text id="colonyName1" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select1" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row2 -->
+        <view id="row2" pos="0 40" size="164 20" visible="false">
+            <text id="colonyName2" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select2" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row3 -->
+        <view id="row3" pos="0 60" size="164 20" visible="false">
+            <text id="colonyName3" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select3" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row4 -->
+        <view id="row4" pos="0 80" size="164 20" visible="false">
+            <text id="colonyName4" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select4" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row5 -->
+        <view id="row5" pos="0 100" size="164 20" visible="false">
+            <text id="colonyName5" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select5" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row6 -->
+        <view id="row6" pos="0 120" size="164 20" visible="false">
+            <text id="colonyName6" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select6" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row7 -->
+        <view id="row7" pos="0 140" size="164 20" visible="false">
+            <text id="colonyName7" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select7" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row8 -->
+        <view id="row8" pos="0 160" size="164 20" visible="false">
+            <text id="colonyName8" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select8" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+        <!-- row9 -->
+        <view id="row9" pos="0 180" size="164 20" visible="false">
+            <text id="colonyName9" pos="0 4" size="120 12" color="black" textalign="MIDDLE_LEFT"/>
+            <button id="select9" pos="119 0" size="45 20" label="선택"/>
+        </view>
+
+    </scrollgroup>
+
+    <button id="refresh" pos="33 170" size="80 20" label="새로고침"/>
+    <button id="confirm" pos="117 170" size="80 20" label="이적"/>
+</window>
