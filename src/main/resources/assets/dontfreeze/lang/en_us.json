@@ -1,0 +1,5 @@
+{
+  "itemGroup.dontfreeze": "Example Mod Tab",
+  "block.dontfreeze.example_block": "Example Block",
+  "item.dontfreeze.example_item": "Example Item"
+}
