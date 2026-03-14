@@ -2,8 +2,13 @@
   "required": true,
   "minVersion": "0.8",
   "package": "wwgs.dontfreeze.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MineColoniesCitizenDiseaseMixin",
+    "MixinAbstractWindowCitizen",
+    "BiomeMixin",
+    "RaiderArmorScalingMixin",
+    "RaiderMobUtilsSpawnRedirectMixin"
   ],
   "client": [
   ],
