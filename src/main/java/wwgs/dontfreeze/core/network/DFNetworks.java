@@ -4,9 +4,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import wwgs.dontfreeze.Dontfreeze;
-import wwgs.dontfreeze.core.network.payload.C2SCitizenMigrate;
-import wwgs.dontfreeze.core.network.payload.C2SSetHeatBonus;
-import wwgs.dontfreeze.core.network.payload.S2CActiveGeneratorCores;
+import wwgs.dontfreeze.core.network.payload.*;
 
 public final class DFNetworks {
     private DFNetworks() {}
@@ -30,6 +28,18 @@ public final class DFNetworks {
                 C2SCitizenMigrate.TYPE,
                 C2SCitizenMigrate.STREAM_CODEC,
                 C2SCitizenMigrate::handle
+        );
+
+        registrar.playToServer(
+                C2SRequestColonyList.TYPE,
+                C2SRequestColonyList.STREAM_CODEC,
+                C2SRequestColonyList::handle
+        );
+
+        registrar.playToClient(
+                S2CColonyList.TYPE,
+                S2CColonyList.STREAM_CODEC,
+                S2CColonyList::handle
         );
     }
 
