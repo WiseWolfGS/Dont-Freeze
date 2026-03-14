@@ -16,7 +16,7 @@ public final class QueryUtils {
         citizenQuery = impl;
     }
 
-    public static @Nullable BuildingQuery colonyQuery() {
+    public static @Nullable BuildingQuery buildingQuery() {
         return buildingQuery;
     }
 

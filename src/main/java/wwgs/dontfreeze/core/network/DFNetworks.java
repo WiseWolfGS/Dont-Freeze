@@ -41,6 +41,12 @@ public final class DFNetworks {
                 S2CColonyList.STREAM_CODEC,
                 S2CColonyList::handle
         );
+
+        registrar.playToClient(
+                S2CPlayerColonyFuelTime.TYPE,
+                S2CPlayerColonyFuelTime.STREAM_CODEC,
+                S2CPlayerColonyFuelTime::handle
+        );
     }
 
     public static void sendToServer(CustomPacketPayload payload) {

@@ -19,6 +19,7 @@ import wwgs.dontfreeze.core.common.menu.DFMenus;
 import wwgs.dontfreeze.core.temperature.fuel.FuelCostCalculator;
 import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
 import wwgs.dontfreeze.core.temperature.fuel.VanillaBurnTimeFuel;
+import wwgs.dontfreeze.core.temperature.heat.HeatBonusSavedData;
 
 public class MenuGeneratorCore extends AbstractContainerMenu
 {
@@ -140,7 +141,7 @@ public class MenuGeneratorCore extends AbstractContainerMenu
             return;
         }
 
-        var query = QueryUtils.colonyQuery();
+        var query = QueryUtils.buildingQuery();
         if (query == null)
         {
             colonyId = -1;
@@ -209,8 +210,20 @@ public class MenuGeneratorCore extends AbstractContainerMenu
 
     private void syncHeatBonusIfServer()
     {
-        // ColonyHeatParamsStorage 아직 안 옮겼으면 우선 0으로 둔다.
-        heatBonusScaled.set(0);
+        Player player = this.playerInv.player;
+        if (!(player.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        if (colonyId < 0)
+        {
+            heatBonusScaled.set(0);
+            return;
+        }
+
+        double bonus = HeatBonusSavedData.get(level).getBonus(colonyId);
+        heatBonusScaled.set((int) Math.round(bonus * BONUS_SCALE));
     }
 
     private void tryConsumeFuelOnePerTick(ServerLevel level)

@@ -9,11 +9,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jetbrains.annotations.NotNull;
 import wwgs.dontfreeze.Dontfreeze;
 import wwgs.dontfreeze.core.temperature.fuel.menu.MenuGeneratorCore;
-import wwgs.dontfreeze.core.temperature.heat.HeatData;
-import wwgs.dontfreeze.core.temperature.heat.HeatManager;
-import wwgs.dontfreeze.core.temperature.heat.HeatSavedData;
+import wwgs.dontfreeze.core.temperature.heat.HeatBonusSavedData;
 
 public record C2SSetHeatBonus(BlockPos corePos, int bonusScaled) implements CustomPacketPayload {
 
@@ -28,7 +27,7 @@ public record C2SSetHeatBonus(BlockPos corePos, int bonusScaled) implements Cust
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public @NotNull Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
@@ -42,7 +41,7 @@ public record C2SSetHeatBonus(BlockPos corePos, int bonusScaled) implements Cust
             if (colonyId < 0) return;
 
             double bonus = msg.bonusScaled() / 100.0;
-            HeatSavedData.get((ServerLevel) sp.level()).getOrCreate(colonyId).setStored((int) bonus);
+            HeatBonusSavedData.get((ServerLevel) sp.level()).setBonus(colonyId, bonus);
         });
     }
 }
