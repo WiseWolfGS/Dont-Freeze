@@ -1,5 +1,13 @@
 {
-  "itemGroup.dontfreeze": "Example Mod Tab",
-  "block.dontfreeze.example_block": "Example Block",
-  "item.dontfreeze.example_item": "Example Item"
+  "itemGroup.dontfreeze": "Don't freeze Tab",
+  "creativetab.dontfreeze.dontfreeze_items": "Don't freeze Tab",
+  "block.dontfreeze.generator_core": "generator core",
+  "item.dontfreeze.generator_core": "generator core",
+  "block.dontfreeze.blockhutgenerator": "generator hut",
+  "item.dontfreeze.blockhutgenerator": "generator hut",
+  "block.minecolonies.generator": "generator hut colonies",
+  "com.dontfreeze.building.generator": "generator",
+  "com.dontfreeze.building.generator.desc": "Center of colonies.",
+  "menu.dontfreeze.generator_core": "generator",
+  "dontfreeze.gui.citizen.migrate.title": "transfer"
 }
