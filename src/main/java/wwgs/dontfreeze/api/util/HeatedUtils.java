@@ -13,6 +13,9 @@ public class HeatedUtils {
         if (cq == null) return false;
 
         TownHallPos townHall = QueryUtils.buildingQuery().findNearestTownHallPos(level, pos);
+        if (townHall == null) {
+            return false;
+        }
         int colonyId = townHall.getColonyId();
         if (colonyId <= 0) return false;
 

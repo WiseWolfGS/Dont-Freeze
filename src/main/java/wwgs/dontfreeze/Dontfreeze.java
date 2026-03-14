@@ -48,7 +48,6 @@ public class Dontfreeze {
 
     public Dontfreeze(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
-        modEventBus.addListener(this::onRegisterTempModifiers);
 
         DFBlocks.init(modEventBus);
         DFItems.init(modEventBus);
