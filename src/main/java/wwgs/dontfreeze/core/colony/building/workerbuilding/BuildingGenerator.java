@@ -13,6 +13,7 @@ import net.minecraft.util.Tuple;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
@@ -23,24 +24,36 @@ import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
 import wwgs.dontfreeze.core.temperature.fuel.VanillaBurnTimeFuel;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class BuildingGenerator extends AbstractBuilding
 {
     public static final String GENERATOR = "generator";
+
     private static final int INJECT_THRESHOLD_TICKS = 20 * 60 * 5;
-    private static final long REQUEST_COOLDOWN_MS = 60_000;
+    private static final long REQUEST_COOLDOWN_MS = 60_000L;
+
+    /**
+     * Scan radius around the hut / tile entity.
+     * Big enough to catch nearby racks in most schematics without scanning the entire colony.
+     */
+    private static final int DEFAULT_RACK_SCAN_RADIUS_XZ = 12;
+    private static final int DEFAULT_RACK_SCAN_RADIUS_Y = 6;
 
     private static final IFuel FUEL_RULE = new VanillaBurnTimeFuel();
 
     @Nullable
     private IToken<?> activeFuelRequest;
 
-    private long lastRequestMs = 0;
+    private long lastRequestMs = 0L;
 
-    public BuildingGenerator(@NotNull IColony colony, BlockPos pos)
+    public BuildingGenerator(@NotNull final IColony colony, final BlockPos pos)
     {
         super(colony, pos);
     }
@@ -53,7 +66,7 @@ public class BuildingGenerator extends AbstractBuilding
     }
 
     @Override
-    public void onColonyTick(IColony colony)
+    public void onColonyTick(final IColony colony)
     {
         super.onColonyTick(colony);
 
@@ -64,85 +77,76 @@ public class BuildingGenerator extends AbstractBuilding
 
         final int colonyId = colony.getID();
         final int curTicks = getStoredFuel(level, colonyId);
-
         if (curTicks > INJECT_THRESHOLD_TICKS)
         {
             return;
         }
 
-        boolean injected = tryInjectOneCoal(level, colonyId);
+        final boolean injected = tryInjectOneCoal(level, colonyId);
         if (!injected)
         {
             ensureCoalRequest();
         }
     }
 
-    private static int getStoredFuel(@NotNull ServerLevel level, int colonyId)
+    private static int getStoredFuel(@NotNull final ServerLevel level, final int colonyId)
     {
         return FuelSavedData.get(level).getOrCreate(colonyId).getStored();
     }
 
-    private static void injectFuel(@NotNull ServerLevel level, int colonyId, int burnTicks)
+    private static void injectFuel(@NotNull final ServerLevel level, final int colonyId, final int burnTicks)
     {
         if (burnTicks <= 0)
         {
             return;
         }
 
-        FuelSavedData data = FuelSavedData.get(level);
+        final FuelSavedData data = FuelSavedData.get(level);
         data.getOrCreate(colonyId).addFuel(burnTicks);
         data.setDirty();
     }
 
-    private static int getBurnTicks(@NotNull ItemStack stack)
+    private static int getBurnTicks(@NotNull final ItemStack stack)
     {
         return FUEL_RULE.getFuelValue(stack);
     }
 
-    private boolean tryInjectOneCoal(ServerLevel level, int colonyId)
+    private boolean tryInjectOneCoal(@NotNull final ServerLevel level, final int colonyId)
     {
         if (tryInjectFromBuildingInventory(level, colonyId))
         {
             return true;
         }
 
-        var handlers = this.getHandlers();
-        if (handlers != null && !handlers.isEmpty())
+        final List<IItemHandler> handlers = safeGetHandlers();
+        if (!handlers.isEmpty() && tryInjectFromHandlers(level, colonyId, handlers))
         {
-            if (tryInjectFromHandlers(level, colonyId, handlers))
-            {
-                return true;
-            }
+            return true;
         }
 
-        var te = this.getTileEntity();
+        if (tryInjectFromNearbyRacks(level, colonyId))
+        {
+            return true;
+        }
+
+        final Object te = this.getTileEntity();
         if (te == null)
         {
             return false;
         }
 
-        var pos = te.getTilePos();
-        if (!level.isLoaded(pos))
+        final BlockPos pos = tryGetTilePos(te);
+        if (pos == null || !level.isLoaded(pos))
         {
             return false;
         }
 
-        for (Direction dir : Direction.values())
-        {
-            IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, dir);
-            if (handler != null && tryInjectFromOneHandler(level, colonyId, handler))
-            {
-                return true;
-            }
-        }
-
-        IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
-        return handler != null && tryInjectFromOneHandler(level, colonyId, handler);
+        return tryInjectFromBlockCapabilities(level, colonyId, pos);
     }
 
-    private boolean tryInjectFromHandlers(ServerLevel level, int colonyId, List<IItemHandler> handlers)
+    private boolean tryInjectFromHandlers(@NotNull final ServerLevel level, final int colonyId, @NotNull final List<IItemHandler> handlers)
     {
-        for (IItemHandler handler : handlers)
+        for (final IItemHandler handler : handlers)
         {
             if (handler != null && tryInjectFromOneHandler(level, colonyId, handler))
             {
@@ -152,7 +156,7 @@ public class BuildingGenerator extends AbstractBuilding
         return false;
     }
 
-    private boolean tryInjectFromOneHandler(ServerLevel level, int colonyId, IItemHandler handler)
+    private boolean tryInjectFromOneHandler(@NotNull final ServerLevel level, final int colonyId, @NotNull final IItemHandler handler)
     {
         for (int slot = 0; slot < handler.getSlots(); slot++)
         {
@@ -163,22 +167,20 @@ public class BuildingGenerator extends AbstractBuilding
             }
 
             ItemStack extracted = handler.extractItem(slot, 1, false);
-
             if (extracted.isEmpty() && handler instanceof IItemHandlerModifiable modifiable)
             {
-                ItemStack in = modifiable.getStackInSlot(slot);
+                final ItemStack in = modifiable.getStackInSlot(slot);
                 if (!in.isEmpty() && in.is(Items.COAL))
                 {
                     extracted = new ItemStack(Items.COAL, 1);
-                    int remain = in.getCount() - 1;
-
+                    final int remain = in.getCount() - 1;
                     if (remain <= 0)
                     {
                         modifiable.setStackInSlot(slot, ItemStack.EMPTY);
                     }
                     else
                     {
-                        ItemStack newStack = in.copy();
+                        final ItemStack newStack = in.copy();
                         newStack.setCount(remain);
                         modifiable.setStackInSlot(slot, newStack);
                     }
@@ -190,7 +192,7 @@ public class BuildingGenerator extends AbstractBuilding
                 continue;
             }
 
-            int burnTicks = getBurnTicks(extracted);
+            final int burnTicks = getBurnTicks(extracted);
             if (burnTicks <= 0)
             {
                 continue;
@@ -199,41 +201,44 @@ public class BuildingGenerator extends AbstractBuilding
             injectFuel(level, colonyId, burnTicks);
             return true;
         }
+
         return false;
     }
 
-    private boolean tryInjectFromBuildingInventory(ServerLevel level, int colonyId)
+    private boolean tryInjectFromBuildingInventory(@NotNull final ServerLevel level, final int colonyId)
     {
-        Object inv = tryGetBuildingInventoryObject();
-        return switch (inv)
+        final Object inv = tryGetBuildingInventoryObject();
+        if (inv instanceof IItemHandler handler)
         {
-            case IItemHandler handler -> tryInjectFromOneHandler(level, colonyId, handler);
-            case Container container -> tryInjectFromContainer(level, colonyId, container);
-            case null, default -> false;
-        };
+            return tryInjectFromOneHandler(level, colonyId, handler);
+        }
+        if (inv instanceof Container container)
+        {
+            return tryInjectFromContainer(level, colonyId, container);
+        }
+        return false;
     }
 
     public int getTotalFuelTicksInBuildingInventory()
     {
-        Object inv = tryGetBuildingInventoryObject();
+        final Object inv = tryGetBuildingInventoryObject();
         if (inv == null)
         {
             return 0;
         }
 
-        long total = 0;
-
+        long total = 0L;
         if (inv instanceof IItemHandler handler)
         {
             for (int i = 0; i < handler.getSlots(); i++)
             {
-                ItemStack stack = handler.getStackInSlot(i);
+                final ItemStack stack = handler.getStackInSlot(i);
                 if (stack.isEmpty())
                 {
                     continue;
                 }
 
-                int burn = getBurnTicks(stack);
+                final int burn = getBurnTicks(stack);
                 if (burn <= 0)
                 {
                     continue;
@@ -248,13 +253,13 @@ public class BuildingGenerator extends AbstractBuilding
         {
             for (int i = 0; i < container.getContainerSize(); i++)
             {
-                ItemStack stack = container.getItem(i);
+                final ItemStack stack = container.getItem(i);
                 if (stack.isEmpty())
                 {
                     continue;
                 }
 
-                int burn = getBurnTicks(stack);
+                final int burn = getBurnTicks(stack);
                 if (burn <= 0)
                 {
                     continue;
@@ -272,45 +277,39 @@ public class BuildingGenerator extends AbstractBuilding
     {
         long total = getTotalFuelTicksInBuildingInventory();
 
-        try
+        for (final IItemHandler handler : safeGetHandlers())
         {
-            for (IItemHandler handler : this.getHandlers())
+            if (handler == null)
             {
-                if (handler == null)
+                continue;
+            }
+
+            for (int slot = 0; slot < handler.getSlots(); slot++)
+            {
+                final ItemStack stack = handler.getStackInSlot(slot);
+                if (stack.isEmpty())
                 {
                     continue;
                 }
 
-                for (int slot = 0; slot < handler.getSlots(); slot++)
+                final int burn = getBurnTicks(stack);
+                if (burn <= 0)
                 {
-                    ItemStack stack = handler.getStackInSlot(slot);
-                    if (stack.isEmpty())
-                    {
-                        continue;
-                    }
-
-                    int burn = getBurnTicks(stack);
-                    if (burn <= 0)
-                    {
-                        continue;
-                    }
-
-                    total += (long) burn * stack.getCount();
+                    continue;
                 }
+
+                total += (long) burn * stack.getCount();
             }
-        }
-        catch (Throwable ignored)
-        {
         }
 
         return (int) Math.min(Integer.MAX_VALUE, total);
     }
 
-    private boolean tryInjectFromContainer(ServerLevel level, int colonyId, Container container)
+    private boolean tryInjectFromContainer(@NotNull final ServerLevel level, final int colonyId, @NotNull final Container container)
     {
         for (int i = 0; i < container.getContainerSize(); i++)
         {
-            ItemStack stack = container.getItem(i);
+            final ItemStack stack = container.getItem(i);
             if (stack.isEmpty() || !stack.is(Items.COAL))
             {
                 continue;
@@ -319,11 +318,11 @@ public class BuildingGenerator extends AbstractBuilding
             ItemStack removed = container.removeItem(i, 1);
             if (removed.isEmpty())
             {
-                ItemStack cur = container.getItem(i);
+                final ItemStack cur = container.getItem(i);
                 if (!cur.isEmpty() && cur.is(Items.COAL) && cur.getCount() > 0)
                 {
                     removed = new ItemStack(Items.COAL, 1);
-                    ItemStack newStack = cur.copy();
+                    final ItemStack newStack = cur.copy();
                     newStack.setCount(cur.getCount() - 1);
                     container.setItem(i, newStack.getCount() <= 0 ? ItemStack.EMPTY : newStack);
                 }
@@ -334,7 +333,7 @@ public class BuildingGenerator extends AbstractBuilding
                 continue;
             }
 
-            int burnTicks = getBurnTicks(removed);
+            final int burnTicks = getBurnTicks(removed);
             if (burnTicks <= 0)
             {
                 continue;
@@ -347,59 +346,309 @@ public class BuildingGenerator extends AbstractBuilding
         return false;
     }
 
+    private boolean tryInjectFromNearbyRacks(@NotNull final ServerLevel level, final int colonyId)
+    {
+        final BlockPos center = getSearchCenter();
+        final int radiusXZ = getRackScanRadiusXZ();
+        final int radiusY = getRackScanRadiusY();
+
+        final List<BlockPos> rackPositions = new ArrayList<>();
+        final List<BlockPos> otherInventoryPositions = new ArrayList<>();
+
+        final BlockPos min = center.offset(-radiusXZ, -radiusY, -radiusXZ);
+        final BlockPos max = center.offset(radiusXZ, radiusY, radiusXZ);
+
+        for (final BlockPos pos : BlockPos.betweenClosed(min, max))
+        {
+            if (!level.isLoaded(pos))
+            {
+                continue;
+            }
+
+            final BlockEntity be = level.getBlockEntity(pos);
+            final boolean hasInventory = be instanceof Container || hasAnyItemHandler(level, pos);
+            if (!hasInventory)
+            {
+                continue;
+            }
+
+            if (isLikelyRack(level, pos, be))
+            {
+                rackPositions.add(pos.immutable());
+            }
+            else
+            {
+                otherInventoryPositions.add(pos.immutable());
+            }
+        }
+
+        // First prefer actual rack-looking inventories.
+        for (final BlockPos pos : rackPositions)
+        {
+            if (tryInjectFromInventoryAt(level, colonyId, pos))
+            {
+                return true;
+            }
+        }
+
+        // Fallback: nearby inventories that MineColonies exposed in a non-rack block entity.
+        for (final BlockPos pos : otherInventoryPositions)
+        {
+            if (tryInjectFromInventoryAt(level, colonyId, pos))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean tryInjectFromInventoryAt(@NotNull final ServerLevel level, final int colonyId, @NotNull final BlockPos pos)
+    {
+        final Set<IItemHandler> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        IItemHandler nullSide = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
+        if (nullSide != null)
+        {
+            visited.add(nullSide);
+            if (tryInjectFromOneHandler(level, colonyId, nullSide))
+            {
+                return true;
+            }
+        }
+
+        for (final Direction dir : Direction.values())
+        {
+            final IItemHandler sided = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, dir);
+            if (sided == null || !visited.add(sided))
+            {
+                continue;
+            }
+
+            if (tryInjectFromOneHandler(level, colonyId, sided))
+            {
+                return true;
+            }
+        }
+
+        final BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof Container container)
+        {
+            return tryInjectFromContainer(level, colonyId, container);
+        }
+
+        final Object inventory = tryGetInventoryObject(be);
+        if (inventory instanceof Container container)
+        {
+            return tryInjectFromContainer(level, colonyId, container);
+        }
+        if (inventory instanceof IItemHandler handler)
+        {
+            return tryInjectFromOneHandler(level, colonyId, handler);
+        }
+
+        return false;
+    }
+
+    private boolean tryInjectFromBlockCapabilities(@NotNull final ServerLevel level, final int colonyId, @NotNull final BlockPos pos)
+    {
+        final Set<IItemHandler> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        for (final Direction dir : Direction.values())
+        {
+            final IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, dir);
+            if (handler != null && visited.add(handler) && tryInjectFromOneHandler(level, colonyId, handler))
+            {
+                return true;
+            }
+        }
+
+        final IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
+        return handler != null && visited.add(handler) && tryInjectFromOneHandler(level, colonyId, handler);
+    }
+
+    private boolean hasAnyItemHandler(@NotNull final ServerLevel level, @NotNull final BlockPos pos)
+    {
+        if (level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null) != null)
+        {
+            return true;
+        }
+
+        for (final Direction dir : Direction.values())
+        {
+            if (level.getCapability(Capabilities.ItemHandler.BLOCK, pos, dir) != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int getRackScanRadiusXZ()
+    {
+        final int level = Math.max(1, this.getBuildingLevel());
+        return DEFAULT_RACK_SCAN_RADIUS_XZ + Math.min(8, (level - 1) * 2);
+    }
+
+    private int getRackScanRadiusY()
+    {
+        return DEFAULT_RACK_SCAN_RADIUS_Y;
+    }
+
+    @NotNull
+    private BlockPos getSearchCenter()
+    {
+        final Object te = this.getTileEntity();
+        final BlockPos tePos = tryGetTilePos(te);
+        if (tePos != null)
+        {
+            return tePos;
+        }
+        return this.getID();
+    }
+
+    private boolean isLikelyRack(@NotNull final ServerLevel level, @NotNull final BlockPos pos, @Nullable final BlockEntity be)
+    {
+        final String blockPath = safeLowerCase(String.valueOf(level.getBlockState(pos).getBlock()));
+        if (blockPath.contains("rack"))
+        {
+            return true;
+        }
+
+        final String beName = be == null ? "" : safeLowerCase(be.getClass().getName());
+        if (beName.contains("rack"))
+        {
+            return true;
+        }
+
+        final String blockEntityTypeName = be == null || be.getType() == null ? "" : safeLowerCase(String.valueOf(be.getType()));
+        return blockEntityTypeName.contains("rack");
+    }
+
     @Nullable
     private Object tryGetBuildingInventoryObject()
     {
-        final String[] candidates = new String[] { "getInventory", "getBuildingInventory", "getContainer", "getStorage" };
-
-        for (String name : candidates)
+        final String[] candidates = new String[]{"getInventory", "getBuildingInventory", "getContainer", "getStorage"};
+        for (final String name : candidates)
         {
-            Object result = invokeNoArg(this, name);
+            final Object result = invokeNoArg(this, name);
             if (result != null)
             {
                 return result;
             }
         }
 
-        var te = this.getTileEntity();
-        if (te != null)
+        final Object te = this.getTileEntity();
+        final Object inv = tryGetInventoryObject(te);
+        if (inv != null)
         {
-            Object inv = invokeNoArg(te, "getInventory");
-            if (inv != null)
-            {
-                return inv;
-            }
-
-            return invokeNoArg(te, "getContainer");
+            return inv;
         }
 
         return null;
     }
 
     @Nullable
-    private static Object invokeNoArg(Object target, String methodName)
+    private Object tryGetInventoryObject(@Nullable final Object target)
     {
+        if (target == null)
+        {
+            return null;
+        }
+
+        final String[] names = new String[]{"getInventory", "getBuildingInventory", "getContainer", "getStorage"};
+        for (final String name : names)
+        {
+            final Object result = invokeNoArg(target, name);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private BlockPos tryGetTilePos(@Nullable final Object target)
+    {
+        if (target == null)
+        {
+            return null;
+        }
+
         try
         {
-            Method method = target.getClass().getMethod(methodName);
+            final Method method = target.getClass().getMethod("getTilePos");
+            method.setAccessible(true);
+            final Object value = method.invoke(target);
+            if (value instanceof BlockPos pos)
+            {
+                return pos;
+            }
+        }
+        catch (final Throwable ignored)
+        {
+        }
+
+        if (target instanceof BlockEntity be)
+        {
+            return be.getBlockPos();
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static Object invokeNoArg(@Nullable final Object target, @NotNull final String methodName)
+    {
+        if (target == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            final Method method = target.getClass().getMethod(methodName);
             method.setAccessible(true);
             return method.invoke(target);
         }
-        catch (Throwable ignored)
+        catch (final Throwable ignored)
         {
             return null;
         }
     }
 
+    @NotNull
+    private List<IItemHandler> safeGetHandlers()
+    {
+        try
+        {
+            final List<IItemHandler> handlers = this.getHandlers();
+            return handlers == null ? List.of() : handlers;
+        }
+        catch (final Throwable ignored)
+        {
+            return List.of();
+        }
+    }
+
+    @NotNull
+    private static String safeLowerCase(@Nullable final String value)
+    {
+        return value == null ? "" : value.toLowerCase(java.util.Locale.ROOT);
+    }
+
     @Override
-    public int buildingRequiresCertainAmountOfItem(ItemStack stack,
-                                                   List<ItemStorage> localAlreadyKept,
-                                                   boolean inventory,
-                                                   JobEntry jobEntry)
+    public int buildingRequiresCertainAmountOfItem(final ItemStack stack,
+                                                   final List<ItemStorage> localAlreadyKept,
+                                                   final boolean inventory,
+                                                   final JobEntry jobEntry)
     {
         if (stack != null && stack.is(Items.COAL))
         {
-            return 0;
+            return getDesiredCoalStockCountByLevel();
         }
         return super.buildingRequiresCertainAmountOfItem(stack, localAlreadyKept, inventory, jobEntry);
     }
@@ -407,12 +656,12 @@ public class BuildingGenerator extends AbstractBuilding
     @Override
     public Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> getRequiredItemsAndAmount()
     {
-        return Map.of();
+        return Map.of(stack -> stack != null && stack.is(Items.COAL), new Tuple<>(getDesiredCoalStockCountByLevel(), Boolean.TRUE));
     }
 
     private int getDesiredCoalStockCountByLevel()
     {
-        int level = this.getBuildingLevel();
+        final int level = this.getBuildingLevel();
         return switch (level)
         {
             case 1 -> 16;
@@ -429,20 +678,21 @@ public class BuildingGenerator extends AbstractBuilding
             return;
         }
 
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (now - lastRequestMs < REQUEST_COOLDOWN_MS)
         {
             return;
         }
 
-        ItemStack coal = new ItemStack(Items.COAL);
-        int desired = getDesiredCoalStockCountByLevel();
-        int min = Math.max(1, desired / 2);
+        final ItemStack coal = new ItemStack(Items.COAL);
+        final int desired = getDesiredCoalStockCountByLevel();
+        final int min = Math.max(1, desired / 2);
 
-        Stack stackReq = new Stack(coal, desired, min);
-        stackReq.setCanBeResolvedByBuilding(false);
+        final Stack stackReq = new Stack(coal, desired, min);
+        // Allow local building / rack storage resolution as well.
+        stackReq.setCanBeResolvedByBuilding(true);
 
-        IToken<?> token = this.createRequest(stackReq, false);
+        final IToken<?> token = this.createRequest(stackReq, false);
         if (token != null)
         {
             activeFuelRequest = token;
@@ -458,7 +708,7 @@ public class BuildingGenerator extends AbstractBuilding
             return false;
         }
 
-        for (var tokens : getOpenRequestsByRequestableType().values())
+        for (final var tokens : getOpenRequestsByRequestableType().values())
         {
             if (tokens.contains(activeFuelRequest))
             {

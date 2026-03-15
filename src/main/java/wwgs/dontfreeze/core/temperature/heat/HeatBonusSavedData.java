@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import org.jetbrains.annotations.NotNull;
+import wwgs.dontfreeze.Config;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -50,11 +51,13 @@ public class HeatBonusSavedData extends SavedData {
     }
 
     public double getBonus(int colonyId) {
-        return bonusByColony.getOrDefault(colonyId, 0.0);
+        double def = Math.max(0.0, Config.coreMinHeat);
+        return Math.max(def, bonusByColony.getOrDefault(colonyId, def));
     }
 
     public void setBonus(int colonyId, double bonus) {
-        bonusByColony.put(colonyId, Math.max(0.0, bonus));
+        double clamped = Math.max(Config.coreMinHeat, Math.min(Config.coreMaxHeat, bonus));
+        bonusByColony.put(colonyId, clamped);
         setDirty();
     }
 
