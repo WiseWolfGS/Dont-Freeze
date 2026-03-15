@@ -70,21 +70,21 @@ public final class WindowGeneratorCore extends AbstractContainerScreen<MenuGener
         int minutes = this.menu.getDisplayFuelMinutes();
         int seconds = this.menu.getDisplayFuelSeconds();
 
-        String text = minutes + "m " + seconds + "s";
+        String text = minutes + "분 " + seconds + "초";
         int tx = 22;
         int ty = 26;
 
-        gg.drawString(this.font, "Fuel: " + text, tx, ty, 0x404040, false);
-        gg.drawString(this.font, String.format("Heat Bonus: %.2f", this.menu.getHeatBonus()), tx, ty + 10, 0x404040, false);
-        gg.drawString(this.font, String.format("Buildings: %d (Lv Sum: %d)", this.menu.getBuildingCount(), this.menu.getBuildingLevelSum()), tx, ty + 20, 0x404040, false);
+        gg.drawString(this.font, "연료: " + text, tx, ty, 0x404040, false);
+        gg.drawString(this.font, String.format("열 보너스: %.2f", this.menu.getHeatBonus()), tx, ty + 10, 0x404040, false);
+        gg.drawString(this.font, String.format("건물 가중치: %d (건물 레벨 합: %d)", this.menu.getBuildingCount(), this.menu.getBuildingLevelSum()), tx, ty + 20, 0x404040, false);
 
 
         int cps = this.menu.getCostPerSecond();
         if (cps > 0) {
-            gg.drawString(this.font, "Cost/s: " + cps, tx, ty + 30, 0x404040, false);
+            gg.drawString(this.font, "비용/초: " + cps, tx, ty + 30, 0x404040, false);
 
-            String coalText = this.menu.getCoalEfficiencyMinutes() + "m " + this.menu.getCoalEfficiencySeconds() + "s";
-            gg.drawString(this.font, "1 Coal -> " + coalText, tx, ty + 40, 0x404040, false);
+            String coalText = this.menu.getCoalEfficiencyMinutes() + "분 " + this.menu.getCoalEfficiencySeconds() + "초";
+            gg.drawString(this.font, "1 석탄당 작동 시간 -> " + coalText, tx, ty + 40, 0x404040, false);
         }
     }
 
