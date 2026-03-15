@@ -18,7 +18,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import wwgs.dontfreeze.Dontfreeze;
+import wwgs.dontfreeze.api.util.CompatUtils;
 import wwgs.dontfreeze.api.util.HeatedUtils;
+import wwgs.dontfreeze.core.common.weather.SRMCompat;
 import wwgs.dontfreeze.core.temperature.fuel.FuelData;
 import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
 import wwgs.dontfreeze.core.temperature.heat.HeatBonusSavedData;
@@ -39,19 +41,19 @@ public final class MeltTicker
     // TUNING
     // =========================
 
-    /** 큐 처리량(전체). 눈까지 처리하므로 필요하면 조금 올려도 됨 */
-    private static final int MAX_PER_TICK = 30;
+    /** 틱당 실제 처리량 */
+    private static final int MAX_PER_TICK = 40;
 
     /** 틱당 스캔 청크 수 */
     private static final int SCAN_CHUNKS_PER_TICK = 2;
 
-    /** claimMap 갱신 주기(틱). 200 = 10초 */
+    /** claimMap 갱신 주기(틱) */
     private static final int CLAIM_REFRESH_INTERVAL = 200;
 
-    /** 확률 실패 후 재시도까지 기다리는 시간 */
-    private static final int RETRY_DELAY_TICKS = 80;
+    /** 확률 실패 후 재시도 딜레이 */
+    private static final int RETRY_DELAY_TICKS = 60;
 
-    /** 성공 후 쿨다운 */
+    /** 성공 후 재시도 쿨다운 */
     private static final int SUCCESS_COOLDOWN_TICKS = 0;
 
     private static final int MAX_QUEUE_SIZE = 200_000;
@@ -72,10 +74,10 @@ public final class MeltTicker
     /** dim -> positions currently pending in queue (dedupe) */
     private static final Map<ResourceKey<Level>, HashSet<Long>> PENDING = new HashMap<>();
 
-    /** dim -> posLong -> next allowed try tick (cooldown) */
+    /** dim -> posLong -> next allowed try tick */
     private static final Map<ResourceKey<Level>, Map<Long, Long>> NEXT_TRY_TICK = new HashMap<>();
 
-    private static long tickCounter = 0;
+    private static long tickCounter = 0L;
 
     @SubscribeEvent
     public static void onLevelTick(LevelTickEvent.Post event)
@@ -92,16 +94,12 @@ public final class MeltTicker
         PENDING.computeIfAbsent(dim, k -> new HashSet<>());
         NEXT_TRY_TICK.computeIfAbsent(dim, k -> new HashMap<>());
 
-        // 1) colony chunk ring 갱신
         if (tickCounter % CLAIM_REFRESH_INTERVAL == 0)
         {
             rebuildRing(level);
         }
 
-        // 2) colony chunk를 조금씩 스캔해서 queue에 추가
         scanColonyChunks(level, queue);
-
-        // 3) queue에서 얼음/눈을 서서히 녹임
         processMeltQueue(level, queue);
     }
 
@@ -147,7 +145,6 @@ public final class MeltTicker
                     continue;
                 }
 
-                // heated colony만 링에 넣어서 비용 절감
                 if (!isColonyHeated(level, colonyId))
                 {
                     continue;
@@ -219,7 +216,6 @@ public final class MeltTicker
                 continue;
             }
 
-            // 갱신 주기 사이에 연료가 꺼졌으면 스캔 skip
             if (!isColonyHeated(level, colonyId))
             {
                 continue;
@@ -245,28 +241,44 @@ public final class MeltTicker
             return;
         }
 
+        int minY = level.getMinBuildHeight();
+        int maxY = level.getMaxBuildHeight();
+
+        int baseX = chunkPos.getMinBlockX();
+        int baseZ = chunkPos.getMinBlockZ();
+
         for (int x = 0; x < 16; x++)
         {
             for (int z = 0; z < 16; z++)
             {
-                int yTop = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+                int worldX = baseX + x;
+                int worldZ = baseZ + z;
 
-                int worldX = chunkPos.getMinBlockX() + x;
-                int worldZ = chunkPos.getMinBlockZ() + z;
+                int yTop = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, worldX, worldZ);
 
-                // 표면 근처만
-                for (int dy = -2; dy <= 2; dy++)
+                // SRM snow-covered block 대응:
+                // 잔디/꽃/울타리/계단/슬랩 위쪽/변형 위치까지 조금 넓게 본다.
+                for (int y = yTop - 2; y <= yTop + 2; y++)
                 {
-                    int y = yTop + dy;
-                    if (y < level.getMinBuildHeight() || y >= level.getMaxBuildHeight())
+                    if (y < minY || y >= maxY)
                     {
                         continue;
                     }
 
                     BlockPos pos = new BlockPos(worldX, y, worldZ);
+                    if (!level.isLoaded(pos))
+                    {
+                        continue;
+                    }
+
                     BlockState state = chunk.getBlockState(pos);
 
-                    if (!isTargetFrozen(state))
+                    if (!isTargetFrozen(level, state))
+                    {
+                        continue;
+                    }
+
+                    if (!HeatedUtils.isHeatedNow(level, pos))
                     {
                         continue;
                     }
@@ -277,7 +289,6 @@ public final class MeltTicker
                     }
 
                     long packed = pos.asLong();
-
                     if (pending.add(packed))
                     {
                         queue.addLast(pos.immutable());
@@ -306,11 +317,11 @@ public final class MeltTicker
             BlockPos pos = queue.pollFirst();
             long packed = pos.asLong();
 
-            // 큐에서 빠졌으니 pending 해제
             pending.remove(packed);
 
             if (!level.isLoaded(pos))
             {
+                nextTry.remove(packed);
                 continue;
             }
 
@@ -325,26 +336,26 @@ public final class MeltTicker
             {
                 if (pending.add(packed))
                 {
-                    queue.addLast(pos);
+                    queue.addLast(pos.immutable());
                 }
                 continue;
             }
 
             BlockState state = level.getBlockState(pos);
-            if (!isTargetFrozen(state))
+            if (!isTargetFrozen(level, state))
             {
                 nextTry.remove(packed);
                 continue;
             }
 
-            double chance = meltChance(state);
+            double chance = meltChance(level, state);
 
             if (random.nextDouble() > chance)
             {
                 nextTry.put(packed, tickCounter + RETRY_DELAY_TICKS);
                 if (pending.add(packed))
                 {
-                    queue.addLast(pos);
+                    queue.addLast(pos.immutable());
                 }
                 continue;
             }
@@ -352,7 +363,7 @@ public final class MeltTicker
             meltFrozenBlock(level, pos, state);
 
             BlockState after = level.getBlockState(pos);
-            if (isTargetFrozen(after) && HeatedUtils.isHeatedNow(level, pos))
+            if (isTargetFrozen(level, after) && HeatedUtils.isHeatedNow(level, pos))
             {
                 if (SUCCESS_COOLDOWN_TICKS > 0)
                 {
@@ -375,49 +386,77 @@ public final class MeltTicker
         }
     }
 
-    private static boolean isTargetFrozen(BlockState state)
+    private static boolean isTargetFrozen(ServerLevel level, BlockState state)
+    {
+        if (isVanillaFrozen(state))
+        {
+            return true;
+        }
+
+        return CompatUtils.hasSnowRealMagic() && SRMCompat.isSrmBlock(level, state);
+    }
+
+    private static boolean isVanillaFrozen(BlockState state)
     {
         return state.is(Blocks.ICE)
                 || state.is(Blocks.PACKED_ICE)
                 || state.is(Blocks.BLUE_ICE)
                 || state.is(Blocks.SNOW)
-                || state.is(Blocks.SNOW_BLOCK);
+                || state.is(Blocks.SNOW_BLOCK)
+                || state.is(Blocks.POWDER_SNOW);
     }
 
-    private static double meltChance(BlockState state)
+    private static double meltChance(ServerLevel level, BlockState state)
     {
-        double base;
+        if (CompatUtils.hasSnowRealMagic() && SRMCompat.isSrmBlock(level, state))
+        {
+            return 0.12;
+        }
 
         if (state.is(Blocks.SNOW))
         {
-            base = 0.08;
-        }
-        else if (state.is(Blocks.SNOW_BLOCK))
-        {
-            base = 0.02;
-        }
-        else if (state.is(Blocks.ICE))
-        {
-            base = 0.010;
-        }
-        else if (state.is(Blocks.PACKED_ICE))
-        {
-            base = 0.004;
-        }
-        else
-        {
-            base = 0.0025; // BLUE_ICE
+            return 0.10;
         }
 
-        return Mth.clamp(base, 0.0005, 0.20);
+        if (state.is(Blocks.SNOW_BLOCK))
+        {
+            return 0.03;
+        }
+
+        if (state.is(Blocks.POWDER_SNOW))
+        {
+            return 0.04;
+        }
+
+        if (state.is(Blocks.ICE))
+        {
+            return 0.010;
+        }
+
+        if (state.is(Blocks.PACKED_ICE))
+        {
+            return 0.004;
+        }
+
+        if (state.is(Blocks.BLUE_ICE))
+        {
+            return 0.0025;
+        }
+
+        return Mth.clamp(0.01, 0.0005, 0.20);
     }
 
     private static void meltFrozenBlock(ServerLevel level, BlockPos pos, BlockState state)
     {
+        if (CompatUtils.hasSnowRealMagic() && SRMCompat.isSrmBlock(level, state))
+        {
+            meltSrmBlock(level, pos, state);
+            return;
+        }
+
         if (state.is(Blocks.SNOW))
         {
             int layers = state.getValue(SnowLayerBlock.LAYERS);
-
             if (layers > 1)
             {
                 level.setBlock(pos, state.setValue(SnowLayerBlock.LAYERS, layers - 1), 2);
@@ -439,7 +478,79 @@ public final class MeltTicker
             return;
         }
 
+        if (state.is(Blocks.POWDER_SNOW))
+        {
+            level.removeBlock(pos, false);
+            return;
+        }
+
         meltIce(level, pos);
+    }
+
+    private static void meltSrmBlock(ServerLevel level, BlockPos pos, BlockState state)
+    {
+        // 1) SRM 레이어 계열이면 가능하면 한 층씩 줄인다.
+        Integer layers = getLayerValue(state);
+        if (layers != null)
+        {
+            if (layers > 1)
+            {
+                BlockState lowered = lowerLayer(state, layers - 1);
+                if (lowered != null)
+                {
+                    level.setBlock(pos, lowered, 2);
+                    return;
+                }
+            }
+
+            // 2) 마지막 단계면 원본 블록 복구 시도
+            if (SRMCompat.tryRestoreOriginal(level, pos))
+            {
+                return;
+            }
+
+            // 3) 복구 실패 시 최후 fallback
+            level.removeBlock(pos, false);
+            return;
+        }
+
+        // 레이어 프로퍼티가 없는 SRM snowy variant도 원본 복구 시도
+        if (SRMCompat.tryRestoreOriginal(level, pos))
+        {
+            return;
+        }
+
+        // 그래도 실패하면 제거
+        level.removeBlock(pos, false);
+    }
+
+    private static Integer getLayerValue(BlockState state)
+    {
+        for (var property : state.getProperties())
+        {
+            if (property instanceof net.minecraft.world.level.block.state.properties.IntegerProperty intProperty
+                    && "layers".equals(intProperty.getName()))
+            {
+                return state.getValue(intProperty);
+            }
+        }
+        return null;
+    }
+
+    private static BlockState lowerLayer(BlockState state, int newLayers)
+    {
+        for (var property : state.getProperties())
+        {
+            if (property instanceof net.minecraft.world.level.block.state.properties.IntegerProperty intProperty
+                    && "layers".equals(intProperty.getName()))
+            {
+                if (intProperty.getPossibleValues().contains(newLayers))
+                {
+                    return state.setValue(intProperty, newLayers);
+                }
+            }
+        }
+        return null;
     }
 
     private static void meltIce(ServerLevel level, BlockPos pos)

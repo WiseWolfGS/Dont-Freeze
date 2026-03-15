@@ -9,4 +9,5 @@ public class CompatUtils {
     public static boolean hasMineColonies() {
         return ModList.get().isLoaded("minecolonies");
     }
+    public static boolean hasSnowRealMagic() { return ModList.get().isLoaded("snowrealmagic"); }
 }

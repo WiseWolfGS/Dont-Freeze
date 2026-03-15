@@ -79,6 +79,8 @@ dependencies {
     implementation "curse.maven:structurize-298744:7690600"
     implementation "curse.maven:towntalk-900364:5653504"
     implementation "curse.maven:cold-sweat-506194:7492465"
+    implementation "curse.maven:snow-real-magic-308663:7579809"
+    implementation "curse.maven:kiwi-303657:7666569"
 
     compileOnly "org.spongepowered:mixin:0.8.5"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
