@@ -1,5 +1,6 @@
 package wwgs.dontfreeze.core.temperature.fuel.menu;
 
+import com.minecolonies.core.util.BuildingUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
@@ -13,8 +14,10 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
+import wwgs.dontfreeze.api.colony.building.query.BuildingQuery;
 import wwgs.dontfreeze.api.temperature.fuel.IFuel;
 import wwgs.dontfreeze.api.util.QueryUtils;
+import wwgs.dontfreeze.core.MineColoniesBuildingQuery;
 import wwgs.dontfreeze.core.common.menu.DFMenus;
 import wwgs.dontfreeze.core.temperature.fuel.FuelCostCalculator;
 import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
@@ -164,10 +167,16 @@ public class MenuGeneratorCore extends AbstractContainerMenu
 
         int fuel = colonyId < 0 ? 0 : getStoredFuel(level, colonyId);
         double bonus = getHeatBonus();
-        int cps = colonyId < 0 ? 0 : Math.max(1, FuelCostCalculator.compute(level, colonyId, bonus));
 
-        buildingCount.set(0);
-        buildingLevelSum.set(0);
+        FuelCostCalculator.CostBreakdown breakdown =
+                colonyId < 0
+                        ? null
+                        : FuelCostCalculator.computeBreakdown(level, colonyId, bonus);
+
+        int cps = breakdown == null ? 0 : Math.max(1, breakdown.totalCostPerSecond());
+
+        buildingCount.set(breakdown == null ? 0 : breakdown.buildingCount());
+        buildingLevelSum.set(breakdown == null ? 0 : breakdown.buildingLevelSum());
         costPerSecond.set(cps);
 
         if (fuel <= 0 || cps <= 0)

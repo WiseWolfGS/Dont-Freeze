@@ -2,10 +2,12 @@ package wwgs.dontfreeze.core.colony.building.workerbuilding;
 
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
+import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.BuildingStatisticsModule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +21,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import wwgs.dontfreeze.Dontfreeze;
 import wwgs.dontfreeze.api.temperature.fuel.IFuel;
 import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
 import wwgs.dontfreeze.core.temperature.fuel.VanillaBurnTimeFuel;
@@ -37,7 +40,7 @@ public class BuildingGenerator extends AbstractBuilding
     public static final String GENERATOR = "generator";
 
     private static final int INJECT_THRESHOLD_TICKS = 20 * 60 * 5;
-    private static final long REQUEST_COOLDOWN_MS = 60_000L;
+    private static final long REQUEST_COOLDOWN_MS = 24_000L;
 
     /**
      * Scan radius around the hut / tile entity.
@@ -47,6 +50,8 @@ public class BuildingGenerator extends AbstractBuilding
     private static final int DEFAULT_RACK_SCAN_RADIUS_Y = 6;
 
     private static final IFuel FUEL_RULE = new VanillaBurnTimeFuel();
+    private static long coalConsumedTotal = 0L;
+    private static final String STAT_USED_COAL = "dontfreeze_used_coal";
 
     @Nullable
     private IToken<?> activeFuelRequest;
@@ -94,7 +99,7 @@ public class BuildingGenerator extends AbstractBuilding
         return FuelSavedData.get(level).getOrCreate(colonyId).getStored();
     }
 
-    private static void injectFuel(@NotNull final ServerLevel level, final int colonyId, final int burnTicks)
+    private void injectFuel(@NotNull final ServerLevel level, final int colonyId, final int burnTicks)
     {
         if (burnTicks <= 0)
         {
@@ -103,6 +108,7 @@ public class BuildingGenerator extends AbstractBuilding
 
         final FuelSavedData data = FuelSavedData.get(level);
         data.getOrCreate(colonyId).addFuel(burnTicks);
+        onCoalConsumed();
         data.setDirty();
     }
 
@@ -192,7 +198,7 @@ public class BuildingGenerator extends AbstractBuilding
                 continue;
             }
 
-            final int burnTicks = getBurnTicks(extracted);
+            int burnTicks = getBurnTicks(extracted);
             if (burnTicks <= 0)
             {
                 continue;
@@ -333,7 +339,7 @@ public class BuildingGenerator extends AbstractBuilding
                 continue;
             }
 
-            final int burnTicks = getBurnTicks(removed);
+            int burnTicks = getBurnTicks(removed);
             if (burnTicks <= 0)
             {
                 continue;
@@ -718,5 +724,28 @@ public class BuildingGenerator extends AbstractBuilding
 
         activeFuelRequest = null;
         return false;
+    }
+
+    public long getCoalConsumedTotal()
+    {
+        return coalConsumedTotal;
+    }
+
+    private void onCoalConsumed()
+    {
+        coalConsumedTotal++;
+
+        Dontfreeze.LOGGER.info("used_coal ++, total={}, day={}", coalConsumedTotal, this.getColony().getDay());
+
+        final BuildingStatisticsModule statsModule = this.getFirstModuleOccurance(BuildingStatisticsModule.class);
+        if (statsModule != null)
+        {
+            Dontfreeze.LOGGER.info("stats total now={}", statsModule.getBuildingStatisticsManager().getStatTotal(STAT_USED_COAL));
+            final int day = this.getColony().getDay();
+            statsModule.getBuildingStatisticsManager().incrementBy(STAT_USED_COAL, 1, day);
+            statsModule.markDirty();
+        }
+
+        this.markDirty();
     }
 }

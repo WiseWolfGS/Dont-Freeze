@@ -9,5 +9,6 @@
   "com.dontfreeze.building.generator": "발전기",
   "com.dontfreeze.building.generator.desc": "거센 추위에서 콜로니를 지켜줄 든든한 발전기 입니다. 연료를 넣으면 주변 온도가 일정 수준으로 유지됩니다.",
   "menu.dontfreeze.generator_core": "발전기",
-  "dontfreeze.gui.citizen.migrate.title": "주민 이적"
+  "dontfreeze.gui.citizen.migrate.title": "주민 이적",
+  "com.minecolonies.coremod.gui.townhall.stats.dontfreeze_used_coal": "지금까지 사용한 석탄: %s개"
 }

@@ -20,6 +20,8 @@ public class GeneratorView extends AbstractBuildingView {
     private boolean displayShelfContents = true;
     private final List<ItemStack> shelfItems = new ArrayList<>();
 
+    private long coalConsumedTotal = 0L;
+
     public GeneratorView(final IColonyView colony, final BlockPos pos) {
         super(colony, pos);
     }
@@ -32,6 +34,7 @@ public class GeneratorView extends AbstractBuildingView {
         if (compound != null)
         {
             displayShelfContents = compound.getBoolean("displayShelfContents");
+            coalConsumedTotal = compound.getLong("coalConsumedTotal");
 
             shelfItems.clear();
             for (int i = 0; compound.contains("ritualItem" + i); i++)
@@ -51,5 +54,10 @@ public class GeneratorView extends AbstractBuildingView {
     public List<ItemStack> getShelfItems()
     {
         return shelfItems;
+    }
+
+    public long getCoalConsumedTotal()
+    {
+        return coalConsumedTotal;
     }
 }

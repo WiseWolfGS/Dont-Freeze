@@ -9,5 +9,6 @@
   "com.dontfreeze.building.generator": "generator",
   "com.dontfreeze.building.generator.desc": "Center of colonies.",
   "menu.dontfreeze.generator_core": "generator",
-  "dontfreeze.gui.citizen.migrate.title": "transfer"
+  "dontfreeze.gui.citizen.migrate.title": "transfer",
+  "com.minecolonies.coremod.gui.townhall.stats.dontfreeze_used_coal": "Total Used Coal: %s"
 }
