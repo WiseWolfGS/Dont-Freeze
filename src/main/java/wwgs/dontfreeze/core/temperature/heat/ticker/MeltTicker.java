@@ -10,6 +10,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -38,7 +39,7 @@ public final class MeltTicker
     // TUNING
     // =========================
 
-    /** 큐 처리량(전체). 얼음만 처리하므로 20~60 사이 권장 */
+    /** 큐 처리량(전체). 눈까지 처리하므로 필요하면 조금 올려도 됨 */
     private static final int MAX_PER_TICK = 30;
 
     /** 틱당 스캔 청크 수 */
@@ -50,8 +51,8 @@ public final class MeltTicker
     /** 확률 실패 후 재시도까지 기다리는 시간 */
     private static final int RETRY_DELAY_TICKS = 80;
 
-    /** 얼음 성공 후 쿨다운 */
-    private static final int ICE_SUCCESS_COOLDOWN_TICKS = 0;
+    /** 성공 후 쿨다운 */
+    private static final int SUCCESS_COOLDOWN_TICKS = 0;
 
     private static final int MAX_QUEUE_SIZE = 200_000;
 
@@ -100,7 +101,7 @@ public final class MeltTicker
         // 2) colony chunk를 조금씩 스캔해서 queue에 추가
         scanColonyChunks(level, queue);
 
-        // 3) queue에서 얼음을 서서히 녹임
+        // 3) queue에서 얼음/눈을 서서히 녹임
         processMeltQueue(level, queue);
     }
 
@@ -265,7 +266,7 @@ public final class MeltTicker
                     BlockPos pos = new BlockPos(worldX, y, worldZ);
                     BlockState state = chunk.getBlockState(pos);
 
-                    if (!isTargetIce(state))
+                    if (!isTargetFrozen(state))
                     {
                         continue;
                     }
@@ -315,6 +316,7 @@ public final class MeltTicker
 
             if (!HeatedUtils.isHeatedNow(level, pos))
             {
+                nextTry.remove(packed);
                 continue;
             }
 
@@ -329,12 +331,13 @@ public final class MeltTicker
             }
 
             BlockState state = level.getBlockState(pos);
-            if (!isTargetIce(state))
+            if (!isTargetFrozen(state))
             {
+                nextTry.remove(packed);
                 continue;
             }
 
-            double chance = meltChanceIce(state);
+            double chance = meltChance(state);
 
             if (random.nextDouble() > chance)
             {
@@ -346,11 +349,24 @@ public final class MeltTicker
                 continue;
             }
 
-            meltIce(level, pos);
+            meltFrozenBlock(level, pos, state);
 
-            if (ICE_SUCCESS_COOLDOWN_TICKS > 0)
+            BlockState after = level.getBlockState(pos);
+            if (isTargetFrozen(after) && HeatedUtils.isHeatedNow(level, pos))
             {
-                nextTry.put(packed, tickCounter + ICE_SUCCESS_COOLDOWN_TICKS);
+                if (SUCCESS_COOLDOWN_TICKS > 0)
+                {
+                    nextTry.put(packed, tickCounter + SUCCESS_COOLDOWN_TICKS);
+                }
+                else
+                {
+                    nextTry.remove(packed);
+                }
+
+                if (pending.add(packed))
+                {
+                    queue.addLast(pos.immutable());
+                }
             }
             else
             {
@@ -359,17 +375,28 @@ public final class MeltTicker
         }
     }
 
-    private static boolean isTargetIce(BlockState state)
+    private static boolean isTargetFrozen(BlockState state)
     {
         return state.is(Blocks.ICE)
                 || state.is(Blocks.PACKED_ICE)
-                || state.is(Blocks.BLUE_ICE);
+                || state.is(Blocks.BLUE_ICE)
+                || state.is(Blocks.SNOW)
+                || state.is(Blocks.SNOW_BLOCK);
     }
 
-    private static double meltChanceIce(BlockState state)
+    private static double meltChance(BlockState state)
     {
         double base;
-        if (state.is(Blocks.ICE))
+
+        if (state.is(Blocks.SNOW))
+        {
+            base = 0.08;
+        }
+        else if (state.is(Blocks.SNOW_BLOCK))
+        {
+            base = 0.02;
+        }
+        else if (state.is(Blocks.ICE))
         {
             base = 0.010;
         }
@@ -385,8 +412,45 @@ public final class MeltTicker
         return Mth.clamp(base, 0.0005, 0.20);
     }
 
+    private static void meltFrozenBlock(ServerLevel level, BlockPos pos, BlockState state)
+    {
+        if (state.is(Blocks.SNOW))
+        {
+            int layers = state.getValue(SnowLayerBlock.LAYERS);
+
+            if (layers > 1)
+            {
+                level.setBlock(pos, state.setValue(SnowLayerBlock.LAYERS, layers - 1), 2);
+            }
+            else
+            {
+                level.removeBlock(pos, false);
+            }
+            return;
+        }
+
+        if (state.is(Blocks.SNOW_BLOCK))
+        {
+            level.setBlock(
+                    pos,
+                    Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, 8),
+                    2
+            );
+            return;
+        }
+
+        meltIce(level, pos);
+    }
+
     private static void meltIce(ServerLevel level, BlockPos pos)
     {
+        BlockState state = level.getBlockState(pos);
+
+        if (!state.is(Blocks.ICE) && !state.is(Blocks.PACKED_ICE) && !state.is(Blocks.BLUE_ICE))
+        {
+            return;
+        }
+
         if (level.dimensionType().ultraWarm())
         {
             level.removeBlock(pos, false);
