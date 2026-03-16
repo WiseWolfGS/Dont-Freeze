@@ -44,7 +44,6 @@ public class MenuGeneratorCore extends AbstractContainerMenu
     private final DataSlot colonyIdSlot = DataSlot.standalone();
     private final DataSlot fuelMinutes = DataSlot.standalone();
     private final DataSlot fuelSeconds = DataSlot.standalone();
-    private final DataSlot fuelTotal = DataSlot.standalone();
     private final DataSlot heatBonusScaled = DataSlot.standalone();
     private final DataSlot buildingCount = DataSlot.standalone();
     private final DataSlot buildingLevelSum = DataSlot.standalone();
@@ -66,7 +65,6 @@ public class MenuGeneratorCore extends AbstractContainerMenu
         this.addDataSlot(colonyIdSlot);
         this.addDataSlot(fuelMinutes);
         this.addDataSlot(fuelSeconds);
-        this.addDataSlot(fuelTotal);
         this.addDataSlot(heatBonusScaled);
         this.addDataSlot(buildingCount);
         this.addDataSlot(buildingLevelSum);
@@ -185,14 +183,12 @@ public class MenuGeneratorCore extends AbstractContainerMenu
         {
             fuelMinutes.set(0);
             fuelSeconds.set(0);
-            fuelTotal.set(0);
             coalMinutes.set(0);
             coalSeconds.set(0);
             return;
         }
 
         int totalSeconds = fuel / cps;
-        fuelTotal.set(fuel);
         fuelMinutes.set(totalSeconds / SECONDS_PER_MINUTE);
         fuelSeconds.set(totalSeconds % SECONDS_PER_MINUTE);
 
@@ -359,11 +355,6 @@ public class MenuGeneratorCore extends AbstractContainerMenu
     public int getDisplayFuelSeconds()
     {
         return fuelSeconds.get();
-    }
-
-    public int getDisplayFuelTotal()
-    {
-        return fuelTotal.get();
     }
 
     public int getColonyId()

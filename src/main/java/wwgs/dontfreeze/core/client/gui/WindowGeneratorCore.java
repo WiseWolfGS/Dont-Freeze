@@ -69,9 +69,8 @@ public final class WindowGeneratorCore extends AbstractContainerScreen<MenuGener
 
         int minutes = this.menu.getDisplayFuelMinutes();
         int seconds = this.menu.getDisplayFuelSeconds();
-        int totalTicks = this.menu.getDisplayFuelTotal();
 
-        String text = minutes + "분 " + seconds + "초" + " (틱: " + totalTicks + ")";
+        String text = minutes + "분 " + seconds + "초";
         int tx = 22;
         int ty = 26;
 
@@ -82,10 +81,8 @@ public final class WindowGeneratorCore extends AbstractContainerScreen<MenuGener
 
         int cps = this.menu.getCostPerSecond();
         if (cps > 0) {
-            gg.drawString(this.font, "비용/초: " + cps, tx, ty + 30, 0x404040, false);
-
             String coalText = this.menu.getCoalEfficiencyMinutes() + "분 " + this.menu.getCoalEfficiencySeconds() + "초";
-            gg.drawString(this.font, "1 석탄당 작동 시간 -> " + coalText, tx, ty + 40, 0x404040, false);
+            gg.drawString(this.font, "1 석탄당 작동 시간 -> " + coalText, tx, ty + 30, 0x404040, false);
         }
     }
 

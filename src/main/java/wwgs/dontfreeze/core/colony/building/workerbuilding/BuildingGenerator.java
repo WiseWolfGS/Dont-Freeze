@@ -10,6 +10,7 @@ import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.BuildingStatisticsModule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.Container;
@@ -23,8 +24,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wwgs.dontfreeze.Dontfreeze;
 import wwgs.dontfreeze.api.temperature.fuel.IFuel;
+import wwgs.dontfreeze.core.temperature.fuel.FuelCostCalculator;
 import wwgs.dontfreeze.core.temperature.fuel.FuelSavedData;
 import wwgs.dontfreeze.core.temperature.fuel.VanillaBurnTimeFuel;
+import wwgs.dontfreeze.core.temperature.fuel.menu.MenuGeneratorCore;
+import wwgs.dontfreeze.core.temperature.heat.HeatBonusSavedData;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -39,7 +43,7 @@ public class BuildingGenerator extends AbstractBuilding
 {
     public static final String GENERATOR = "generator";
 
-    private static final int INJECT_THRESHOLD_TICKS = 20 * 60 * 5;
+    private static final int SECONDS_PER_MINUTE = 60;
     private static final long REQUEST_COOLDOWN_MS = 24_000L;
 
     /**
@@ -82,7 +86,16 @@ public class BuildingGenerator extends AbstractBuilding
 
         final int colonyId = colony.getID();
         final int curTicks = getStoredFuel(level, colonyId);
-        if (curTicks > INJECT_THRESHOLD_TICKS)
+
+        double bonus = HeatBonusSavedData.get(level).getBonus(colonyId);
+        FuelCostCalculator.CostBreakdown breakdown =
+                colonyId < 0
+                        ? null
+                        : FuelCostCalculator.computeBreakdown(level, colonyId, bonus);
+
+        int cps = breakdown == null ? 0 : Math.max(1, breakdown.totalCostPerSecond());
+
+        if (curTicks / cps > 5 * SECONDS_PER_MINUTE)
         {
             return;
         }
@@ -683,6 +696,8 @@ public class BuildingGenerator extends AbstractBuilding
         {
             return;
         }
+
+        colony.getImportantMessageEntityPlayers().getFirst().sendSystemMessage(Component.literal(colony.getName() + "의 연료가 5분 이하로 남았습니다!"));
 
         final long now = System.currentTimeMillis();
         if (now - lastRequestMs < REQUEST_COOLDOWN_MS)
