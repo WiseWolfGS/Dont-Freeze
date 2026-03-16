@@ -69,13 +69,14 @@ public final class WindowGeneratorCore extends AbstractContainerScreen<MenuGener
 
         int minutes = this.menu.getDisplayFuelMinutes();
         int seconds = this.menu.getDisplayFuelSeconds();
+        int totalTicks = this.menu.getDisplayFuelTotal();
 
-        String text = minutes + "분 " + seconds + "초";
+        String text = minutes + "분 " + seconds + "초" + " (틱: " + totalTicks + ")";
         int tx = 22;
         int ty = 26;
 
         gg.drawString(this.font, "연료: " + text, tx, ty, 0x404040, false);
-        gg.drawString(this.font, String.format("열 보너스: %.2f", this.menu.getHeatBonus()), tx, ty + 10, 0x404040, false);
+        gg.drawString(this.font, String.format("열 보너스: %.2f (0.25당 약 6℃)", this.menu.getHeatBonus()), tx, ty + 10, 0x404040, false);
         gg.drawString(this.font, String.format("건물 가중치: %d (건물 레벨 합: %d)", this.menu.getBuildingCount(), this.menu.getBuildingLevelSum()), tx, ty + 20, 0x404040, false);
 
 
