@@ -100,10 +100,29 @@ public class BuildingGenerator extends AbstractBuilding
             return;
         }
 
-        final boolean injected = tryInjectOneCoal(level, colonyId);
-        if (!injected)
+        int targetTicksToInject = 10 * SECONDS_PER_MINUTE * cps;
+        int injectedTicks = 0;
+
+        while (injectedTicks < targetTicksToInject)
         {
-            ensureCoalRequest();
+            final int before = getStoredFuel(level, colonyId);
+
+            final boolean injected = tryInjectOneCoal(level, colonyId);
+            if (!injected)
+            {
+                ensureCoalRequest();
+                break;
+            }
+
+            final int after = getStoredFuel(level, colonyId);
+
+            int gained = after - before;
+            if (gained <= 0)
+            {
+                break;
+            }
+
+            injectedTicks += gained;
         }
     }
 
